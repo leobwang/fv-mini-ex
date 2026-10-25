@@ -1,0 +1,4 @@
+.toolchain/
+tools/local-paths
+lean/.lake/
+__pycache__/

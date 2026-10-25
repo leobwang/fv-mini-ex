@@ -1,0 +1,983 @@
+{
+ "E01": {
+  "banned": [],
+  "spec": [
+   "06b9b6dc892b5f4f",
+   "23d2fd8e75a0f688",
+   "68856bd65f66c47e",
+   "94df92e8d0bab2d1"
+  ]
+ },
+ "E02": {
+  "banned": [],
+  "spec": [
+   "e271e23098e8388f",
+   "55b81b9753462b2c",
+   "560a015d18d098f2",
+   "388aa45e53dd9320"
+  ]
+ },
+ "E03": {
+  "banned": [
+   "simp",
+   "simp_all",
+   "grind"
+  ],
+  "spec": [
+   "c661f8d11274e974",
+   "d23cc407e9a02de9",
+   "a819915ba770c66e",
+   "cfc9773ffce1dba2"
+  ]
+ },
+ "E04": {
+  "banned": [
+   "by"
+  ],
+  "spec": [
+   "60d2c5a8d3d0a6fd",
+   "0f449ca22baecc5c",
+   "4705c4c91f098192",
+   "93c43fafaac09fef"
+  ]
+ },
+ "E05": {
+  "banned": [
+   "simp",
+   "simp_all",
+   "grind",
+   "and_comm",
+   "and_assoc"
+  ],
+  "spec": [
+   "992e631c3880068d",
+   "e4e87b610aca4f72",
+   "e546d5aad99fb2dc"
+  ]
+ },
+ "E06": {
+  "banned": [
+   "simp",
+   "simp_all",
+   "grind",
+   "or_comm",
+   "and_or_left"
+  ],
+  "spec": [
+   "a1798bbdc1f5acbd",
+   "b07686481a888455"
+  ]
+ },
+ "E07": {
+  "banned": [
+   "simp",
+   "simp_all",
+   "grind"
+  ],
+  "spec": [
+   "d67537e6b2514a1c",
+   "4f996a23830ac021",
+   "5af97797fd64cced",
+   "b0b57defeb20f577"
+  ]
+ },
+ "E08": {
+  "banned": [
+   "simp",
+   "simp_all",
+   "grind",
+   "not_or"
+  ],
+  "spec": [
+   "92a2d91070700396",
+   "7096382f49bf44b0",
+   "da729fbdbfc1823f",
+   "ed7f31e5b22b8408"
+  ]
+ },
+ "E09": {
+  "banned": [
+   "simp",
+   "simp_all",
+   "grind",
+   "omega"
+  ],
+  "spec": [
+   "637b988499d0e55f",
+   "bf2c0d6152218a17",
+   "a0a274326ca91257",
+   "6d3737fc77268b52"
+  ]
+ },
+ "E10": {
+  "banned": [
+   "omega",
+   "grind"
+  ],
+  "spec": [
+   "cd2810e11be0f3a9",
+   "5719ecf822747318",
+   "80905d437dfe1d9b",
+   "f32c943aa11a06d8",
+   "0b1ea8404baa1fc2"
+  ]
+ },
+ "E11": {
+  "banned": [],
+  "spec": [
+   "f7eb78fba8a5a488",
+   "9e744900e06d9fad",
+   "af9246bcece084d2",
+   "11d3b7b6df7e0f95",
+   "c6fe60cab6748274"
+  ]
+ },
+ "E12": {
+  "banned": [],
+  "spec": [
+   "03c05ead9a34d01f",
+   "010ae35a00cdb3fe"
+  ]
+ },
+ "E13": {
+  "banned": [],
+  "spec": [
+   "42808f05120c437f",
+   "16709aebbcb0e84d"
+  ]
+ },
+ "E14": {
+  "banned": [],
+  "spec": [
+   "3e72d74f31a25c01",
+   "d413c9bff2cd48d4",
+   "9c4dea573eecdfbe"
+  ]
+ },
+ "E15": {
+  "banned": [],
+  "spec": [
+   "acd4cadf629bf65b",
+   "3edb0f01d7073146",
+   "a866c1cbc5c945db",
+   "4c0ededf1d5ce94c"
+  ]
+ },
+ "E16": {
+  "banned": [],
+  "spec": [
+   "a382b1cebebdf180",
+   "f9fd502f9c16e20e",
+   "caffb1966f01f04b",
+   "b6b754dbf692fc05"
+  ]
+ },
+ "E17": {
+  "banned": [],
+  "spec": [
+   "863ba245e98d84ec",
+   "e1136311fe320c41",
+   "387b6ee2eef52b67",
+   "1ae880ef8e13cd55",
+   "78a136d6504bdbd2",
+   "2a8c7bd5040cb63c"
+  ]
+ },
+ "E18": {
+  "banned": [],
+  "spec": [
+   "da2226786c107b07",
+   "deb98793310276f8",
+   "f572a83c98474941",
+   "9c5de576ea01663b",
+   "3fd9de63dd286686"
+  ]
+ },
+ "E19": {
+  "banned": [],
+  "spec": [
+   "c36c9bfe200ede83",
+   "33a503c293eaf49c",
+   "6d7bdcf7726bfa02",
+   "240a550109d8595d"
+  ]
+ },
+ "E20": {
+  "banned": [
+   "grind"
+  ],
+  "spec": [
+   "d9e5877780939b43",
+   "67a42ae5ca0096d6"
+  ]
+ },
+ "E21": {
+  "banned": [],
+  "spec": [
+   "7eb25f33f26f0e35",
+   "c0531c5584bb85d4",
+   "bebbdde3c17554ce"
+  ]
+ },
+ "E22": {
+  "banned": [],
+  "spec": [
+   "e0511094f82c9f62",
+   "d881775591989f7c",
+   "24da978e3bee5c1e"
+  ]
+ },
+ "E23": {
+  "banned": [
+   "omega",
+   "grind",
+   "simp"
+  ],
+  "spec": [
+   "0ce30a43fe88e699",
+   "862d5e56ee7adb49",
+   "233f6abbd110d33d",
+   "16a80fdb951fe878",
+   "045e8fa0d5047c74"
+  ]
+ },
+ "E24": {
+  "banned": [],
+  "spec": [
+   "d782765bde4ea29e",
+   "f6f3eff74b3a66ec",
+   "a38aebc3197f7807",
+   "6a957e6982907ab9"
+  ]
+ },
+ "E25": {
+  "banned": [],
+  "spec": [
+   "99c09b95f777d99f",
+   "a7bafa0cc4fb4d63",
+   "c49a646cc22f75b8"
+  ]
+ },
+ "E26": {
+  "banned": [],
+  "spec": [
+   "14c25b5c19843e9c",
+   "2c7eeded481f985d",
+   "1eb4109c88ad3f39",
+   "118e519412d00689"
+  ]
+ },
+ "E27": {
+  "banned": [],
+  "spec": [
+   "f68578b5c128bed7",
+   "170330464b0ea238",
+   "15e1f2816b67c149",
+   "576781b4001f0b81"
+  ]
+ },
+ "E28": {
+  "banned": [],
+  "spec": [
+   "32506ea797fc0594",
+   "5c4b6c6437802808",
+   "de7432217c154dca",
+   "0d28d81449dabd5b"
+  ]
+ },
+ "E29": {
+  "banned": [],
+  "spec": [
+   "0c32b4be4b8b4b26",
+   "c3f105a3f811435a",
+   "75101ddfa6c82842",
+   "efbc6289d2ce18fd",
+   "5a076a8ca5395f0a"
+  ]
+ },
+ "E30": {
+  "banned": [],
+  "spec": [
+   "d7e4f9d1d01b6593",
+   "890a051fc52c9011",
+   "fe8bf6e6c2ec5ece",
+   "2f27c7c1f6cd6d31"
+  ]
+ },
+ "E31": {
+  "banned": [],
+  "spec": [
+   "dab1102dcc88b51f",
+   "7ba9366628f6c516",
+   "8b4ecd679b76c87e"
+  ]
+ },
+ "E32": {
+  "banned": [],
+  "spec": [
+   "ff90d2290b74be77",
+   "1a4d72ecce4dc996",
+   "ce0b2c2f30fa1288",
+   "bdd5005172ba37ec",
+   "9d13b052be752efc"
+  ]
+ },
+ "E33": {
+  "banned": [
+   "simp",
+   "simp_all",
+   "omega",
+   "grind",
+   "decide"
+  ],
+  "spec": [
+   "0415e1e53e168f1c",
+   "6532a941b152d375",
+   "18d3f273e148c9de",
+   "9e33db6ccdf30529"
+  ]
+ },
+ "E34": {
+  "banned": [],
+  "spec": [
+   "fd2bd0923a5a87ec",
+   "cbebb21afa1ebc15",
+   "95c33ed637d81c6b",
+   "e9da6b1f81d93fa1"
+  ]
+ },
+ "E35": {
+  "banned": [],
+  "spec": [
+   "6518126eb71ff861",
+   "51fbccdd66cc66f8",
+   "9c5b0f8e2a098adc"
+  ]
+ },
+ "E36": {
+  "banned": [],
+  "spec": [
+   "b3653128c5510ae9",
+   "6fbf2fcf424489c3",
+   "9220d705252ace4c",
+   "f8e162b2f3ae0083"
+  ]
+ },
+ "E37": {
+  "banned": [],
+  "spec": [
+   "e4920d0752601a0a",
+   "19744955cc3410b5",
+   "9d1f124fe8099af2",
+   "a629fe61bb0b5770"
+  ]
+ },
+ "E38": {
+  "banned": [
+   "Even.mul_right",
+   "Odd.add_odd",
+   "Odd.pow",
+   "parity_simps"
+  ],
+  "spec": [
+   "e04154b6fe14958d",
+   "484554f17ddf6619",
+   "7749bcc4d0bbe4a8"
+  ]
+ },
+ "E39": {
+  "banned": [
+   "dvd_trans",
+   "Dvd.dvd.trans"
+  ],
+  "spec": [
+   "a794d7f3ec6c686e",
+   "8df1a72153840764",
+   "44d937303b58fd25"
+  ]
+ },
+ "E40": {
+  "banned": [
+   "Set.inter_comm",
+   "Set.subset_union_left",
+   "Set.inter_subset_inter_left"
+  ],
+  "spec": [
+   "6e84c88749234082",
+   "7541c06d3c6fea21",
+   "8e4e9247b0811e35",
+   "cd39c3ba279bd362"
+  ]
+ },
+ "E41": {
+  "banned": [],
+  "spec": [
+   "a8d7d6e86176fe5b",
+   "4b629b8f01e91216",
+   "3fccb3a2c0d1650b"
+  ]
+ },
+ "E42": {
+  "banned": [],
+  "spec": [
+   "ed00dc9262ff5ba0",
+   "bcf40dec04a11619",
+   "b131a5af37d5ae98"
+  ]
+ },
+ "E43": {
+  "banned": [],
+  "spec": [
+   "b00dd7a016e9652b",
+   "8d91e1a0e941f4f7",
+   "469a4a84fb84668a",
+   "f741dbe817af3f59",
+   "76a0dcd47aaa549c"
+  ]
+ },
+ "E44": {
+  "banned": [],
+  "spec": [
+   "264cd1c15fd19af8",
+   "fd20f9359fa7a675",
+   "b6f47ea051b292b0",
+   "cff061f2e2fb8b49"
+  ]
+ },
+ "E45": {
+  "banned": [],
+  "spec": [
+   "4578f6b5b5789033",
+   "0d60325f8ee8c80f",
+   "9b147fd300f94ff8"
+  ]
+ },
+ "H01": {
+  "banned": [],
+  "spec": [
+   "e11a68f40554a692",
+   "11aa432ae8e56fc3",
+   "4451d66e3a3da8d6"
+  ]
+ },
+ "H02": {
+  "banned": [],
+  "spec": [
+   "6f34ca91d9dceeb7",
+   "6affbb5677a45993",
+   "cb4a6a4fc604838c"
+  ]
+ },
+ "H03": {
+  "banned": [],
+  "spec": [
+   "facc2510f8027ba2",
+   "dd2e6dbadd285515",
+   "934e79f28113e372",
+   "1af5e738a0168f65"
+  ]
+ },
+ "H04": {
+  "banned": [],
+  "spec": [
+   "f7bae2377ad89268",
+   "1cab37c9d853f3d6",
+   "a8d7bd4a9c1914eb",
+   "26aa9e8df5162c3d"
+  ]
+ },
+ "H05": {
+  "banned": [],
+  "spec": [
+   "cfe2de486ff56d26",
+   "ac07cd3ea663607f"
+  ]
+ },
+ "H06": {
+  "banned": [],
+  "spec": [
+   "fbd3e54f7f1aa96e",
+   "c4a4652c2e8d99c2",
+   "3d6ee98d895ceda8"
+  ]
+ },
+ "H07": {
+  "banned": [
+   "Nat.exists_infinite_primes",
+   "Nat.minFac",
+   "Nat.minFac_prime",
+   "Nat.minFac_dvd",
+   "Nat.exists_prime_and_dvd",
+   "Nat.infinite_setOf_prime",
+   "Nat.primeFactors",
+   "Nat.primeFactorsList",
+   "Nat.not_bddAbove_setOf_prime"
+  ],
+  "spec": [
+   "a2d31e1000fcc27e"
+  ]
+ },
+ "H08": {
+  "banned": [
+   "irrational_sqrt_two",
+   "Nat.Prime.irrational_sqrt",
+   "irrational_sqrt_natCast_iff",
+   "irrational_nrt_of_notint_nrt",
+   "irrational_sqrt_of_multiplicity_odd",
+   "irrational_sqrt_ratCast_iff",
+   "Irrational.of_pow",
+   "irrational_sqrt_intCast_iff"
+  ],
+  "spec": [
+   "6158dc37c24ede87",
+   "b065f56699074d88"
+  ]
+ },
+ "H09": {
+  "banned": [],
+  "spec": [
+   "3f64fb8596c6fbac",
+   "e3670872d1e1af4a",
+   "1ded6353459c4e54",
+   "0cf9b200ca3b5df2",
+   "a69690653f385674",
+   "57c452c083f4e8ac"
+  ]
+ },
+ "H10": {
+  "banned": [
+   "Function.Embedding.schroeder_bernstein",
+   "Function.Embedding.antisymm",
+   "Cardinal.mk_le_of_injective",
+   "Function.Embedding.total"
+  ],
+  "spec": [
+   "c93f1967eb3d9364"
+  ]
+ },
+ "M01": {
+  "banned": [],
+  "spec": [
+   "b2849a50143fc92b",
+   "e715b01cde78da13",
+   "336d883213b7b228",
+   "d90d018fcb19854d",
+   "c56f952af6255f51"
+  ]
+ },
+ "M02": {
+  "banned": [],
+  "spec": [
+   "f5c028aa3b6e5ce3",
+   "d845dfd06c2bd685"
+  ]
+ },
+ "M03": {
+  "banned": [
+   "List.reverseAux_eq",
+   "List.reverse_eq_reverseAux"
+  ],
+  "spec": [
+   "27f5aa20681deea4",
+   "fc7690cf49828598",
+   "10123c2e0c110464"
+  ]
+ },
+ "M04": {
+  "banned": [],
+  "spec": [
+   "c98a6e245bd24682",
+   "126d67123761dce2",
+   "3117c19161bc4b50"
+  ]
+ },
+ "M05": {
+  "banned": [],
+  "spec": [
+   "914e8900f68f90e9"
+  ]
+ },
+ "M06": {
+  "banned": [],
+  "spec": [
+   "24cd1166359b7d59",
+   "40ea5b33c7e023e0",
+   "dd27e79311848184",
+   "8567e2548453edf2"
+  ]
+ },
+ "M07": {
+  "banned": [],
+  "spec": [
+   "0d8618b95b6a5e44",
+   "00e6e5e65a4fc92b",
+   "a2bb7b4c6f0b649a",
+   "aa1ea1d5fccad19d",
+   "9e2ef1209a65bb40",
+   "ad2786ad2d2cfc4f"
+  ]
+ },
+ "M08": {
+  "banned": [],
+  "spec": [
+   "81064f471d69418e",
+   "10761f3522dc0d29",
+   "5dd02f1fa7f6349b",
+   "f2400c231ad4860c"
+  ]
+ },
+ "M09": {
+  "banned": [],
+  "spec": [
+   "8ba7891026639e0e",
+   "be0e582506722efb",
+   "48b7647f50e96e67",
+   "35837290f72efb24",
+   "672646056f13106a",
+   "cf4277442f0c097d"
+  ]
+ },
+ "M10": {
+  "banned": [],
+  "spec": [
+   "1dc03f6596b8abc8",
+   "dd2bf3e6017ed17c",
+   "879a0e6a85e6c606",
+   "c278c06538aad53e",
+   "47746d3534a26075",
+   "69315d32d296381e",
+   "096bf43e6298d199"
+  ]
+ },
+ "M11": {
+  "banned": [],
+  "spec": [
+   "b5b8c23b3b1924f9",
+   "ac4a532012252d03",
+   "2b1d94f9586a47cb",
+   "2d4e0d25e090c2c4",
+   "e436787f1b2f8421",
+   "e7c96bd2caad17aa",
+   "b40d5fa49c22c5fd",
+   "ab2fc06518d43f91"
+  ]
+ },
+ "M12": {
+  "banned": [],
+  "spec": [
+   "f6e00ccf826e21da",
+   "1d8ede9fa3e22082",
+   "d6c372f9e91b4afa",
+   "4ec162a995f8d22a",
+   "062d05aaa1abf5c4"
+  ]
+ },
+ "M13": {
+  "banned": [],
+  "spec": [
+   "9316aae7a2ecce4d",
+   "c622a0d7847d8c5f",
+   "433d84462162986b",
+   "2a61bf0afba3c024"
+  ]
+ },
+ "M14": {
+  "banned": [],
+  "spec": [
+   "5bbc5ec9ac7d8fc5",
+   "85e64ac69830e6c7"
+  ]
+ },
+ "M15": {
+  "banned": [],
+  "spec": [
+   "bf602f6b58c476b6",
+   "ba5505ce87780955",
+   "f465cfce6eec54ef"
+  ]
+ },
+ "M16": {
+  "banned": [],
+  "spec": [
+   "d38857b03bad0c64",
+   "34134902fc25fb80",
+   "18d6c6f12cb648cd"
+  ]
+ },
+ "M17": {
+  "banned": [],
+  "spec": [
+   "80c5f27c9a371e86",
+   "da91b0497a7ceaba",
+   "ef4f421660e09e4a"
+  ]
+ },
+ "M18": {
+  "banned": [
+   "List.filter_append_perm"
+  ],
+  "spec": [
+   "4e6e0a4eed938734",
+   "667a8c8322c53d67",
+   "91d6231595df5863"
+  ]
+ },
+ "M19": {
+  "banned": [],
+  "spec": [
+   "182db7db6fe337ee",
+   "b4b42b882289dd47",
+   "bf1b998ab894d0bb"
+  ]
+ },
+ "M20": {
+  "banned": [],
+  "spec": [
+   "c6f073b1869f409c",
+   "fa5fb90069fcbfe9",
+   "12fe2c8e7f20ef91"
+  ]
+ },
+ "M21": {
+  "banned": [],
+  "spec": [
+   "d74a95010211b4b3",
+   "84720c34bf8a91ad",
+   "9445408e53903126"
+  ]
+ },
+ "M22": {
+  "banned": [],
+  "spec": [
+   "372356457afe50de",
+   "fb0ae1c73b48e6de"
+  ]
+ },
+ "M23": {
+  "banned": [],
+  "spec": [
+   "e2b8efccec76cbdd",
+   "580383600d9b5c62",
+   "9b8177ea16576936"
+  ]
+ },
+ "M24": {
+  "banned": [],
+  "spec": [
+   "e015b2820a66c33c",
+   "4eeee5a5648ffa25"
+  ]
+ },
+ "M25": {
+  "banned": [],
+  "spec": [
+   "1349f552808141c8",
+   "720bfb22bffa1007"
+  ]
+ },
+ "M26": {
+  "banned": [],
+  "spec": [
+   "051a39ad1769ef4f",
+   "1d22d7f976bf9c71"
+  ]
+ },
+ "M27": {
+  "banned": [
+   "Nat.gcd",
+   "Nat.gcd_rec"
+  ],
+  "spec": [
+   "34d5584cd2d7653b",
+   "87590e163b6955a9",
+   "4f473c66ce36c2b2"
+  ]
+ },
+ "M28": {
+  "banned": [],
+  "spec": [
+   "ec10109820995a28",
+   "760f6ab804d7adb8",
+   "36889957bbff4057"
+  ]
+ },
+ "M29": {
+  "banned": [],
+  "spec": [
+   "7be9ce54f5c0847c",
+   "49d7150f4a6c98f4",
+   "c368d086ccf8c81a"
+  ]
+ },
+ "M30": {
+  "banned": [],
+  "spec": [
+   "bd7c8c79b2d831df",
+   "dd45f58a733f8de2"
+  ]
+ },
+ "M31": {
+  "banned": [],
+  "spec": [
+   "cfca5334bfcd6979",
+   "45cb37038d0b4c6f",
+   "2156cb20b1f6a3e7"
+  ]
+ },
+ "M32": {
+  "banned": [
+   "Finset.sum_range_id_mul_two",
+   "Finset.sum_range_id",
+   "Gauss_sum",
+   "Finset.sum_range_succ_mul_comm"
+  ],
+  "spec": [
+   "ad54c5d7d21a831d",
+   "9241bfc49dc6f7f1"
+  ]
+ },
+ "M33": {
+  "banned": [
+   "geom_sum_eq",
+   "geom_sum_mul",
+   "mul_geom_sum",
+   "Nat.geomSum_eq",
+   "geom_sum_mul_neg"
+  ],
+  "spec": [
+   "aa8f5b9531b37cb2",
+   "b45d33137b3819cc"
+  ]
+ },
+ "M34": {
+  "banned": [
+   "one_add_mul_le_pow",
+   "Nat.lt_two_pow_self",
+   "Nat.lt_pow_self",
+   "one_add_mul_self_le_pow"
+  ],
+  "spec": [
+   "057b5fbbfe68937f",
+   "e11c85d6db616188"
+  ]
+ },
+ "M35": {
+  "banned": [],
+  "spec": [
+   "fc1f91d3f75c2f48",
+   "af107dc3eb036937",
+   "05853eb2cd1fa3bf"
+  ]
+ },
+ "M36": {
+  "banned": [
+   "Filter.Tendsto.add",
+   "tendsto_add"
+  ],
+  "spec": [
+   "fc1f91d3f75c2f48",
+   "d63761c49c8b8459"
+  ]
+ },
+ "M37": {
+  "banned": [
+   "Function.Injective.comp",
+   "Function.Surjective.comp",
+   "Function.Injective.of_comp",
+   "Function.Surjective.of_comp"
+  ],
+  "spec": [
+   "d5d4e9561a83fca4",
+   "3e5ab51c467125dd",
+   "43d01d0ac75c78c0",
+   "c39c1ada72fbf61b"
+  ]
+ },
+ "M38": {
+  "banned": [
+   "Set.image_union",
+   "Set.image_preimage_subset",
+   "Set.subset_preimage_image",
+   "Set.preimage_inter"
+  ],
+  "spec": [
+   "4d0cf6e5c7890c86",
+   "68cd7d6138830611",
+   "c837d94ae179a79c",
+   "62da1b7f614196ca"
+  ]
+ },
+ "M39": {
+  "banned": [
+   "Function.cantor_surjective",
+   "Function.cantor_injective"
+  ],
+  "spec": [
+   "a8be5b9c1cf12a2e",
+   "ee267599d2203633"
+  ]
+ },
+ "M40": {
+  "banned": [
+   "Real.add_pow_le_pow_mul_pow_of_sq_le_sq",
+   "Real.inner_le_nnorm_mul_nnorm",
+   "Real.geom_mean_le_arith_mean2_weighted",
+   "Real.sqrt_mul_self_le",
+   "four_mul_le_sq_add"
+  ],
+  "spec": [
+   "b25b5cb13f41e674",
+   "2c362f73d13027eb",
+   "ca269e3245a03099"
+  ]
+ },
+ "M41": {
+  "banned": [],
+  "spec": [
+   "327d4d3a9ca73bbe",
+   "6ab38f39565f0c67"
+  ]
+ },
+ "M42": {
+  "banned": [
+   "mul_comm",
+   "mul_comm_of_mul_self_eq_one",
+   "CommGroup"
+  ],
+  "spec": [
+   "26cf6be6d00fc8c7",
+   "c7a9e39965588631"
+  ]
+ },
+ "M43": {
+  "banned": [
+   "Nat.Prime.dvd_of_dvd_pow",
+   "Prime.dvd_of_dvd_pow",
+   "Nat.Prime.dvd_mul_of_dvd_left"
+  ],
+  "spec": [
+   "9f37e3cdd9de120c",
+   "854f20317385bc10",
+   "dee7835647efd2ea"
+  ]
+ },
+ "M44": {
+  "banned": [],
+  "spec": [
+   "0581bdc6cefdebee"
+  ]
+ },
+ "M45": {
+  "banned": [
+   "sq_eq_sq_iff_eq_or_eq_neg",
+   "sq_eq_sq'",
+   "pow_eq_pow_iff_of_ne_zero",
+   "sq_eq_sq_iff_abs_eq_abs",
+   "mul_self_eq_mul_self_iff"
+  ],
+  "spec": [
+   "9e8a249a5656a92f",
+   "2bfb080de44dcf5f"
+  ]
+ }
+}

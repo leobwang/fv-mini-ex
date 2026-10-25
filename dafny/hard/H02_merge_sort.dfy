@@ -1,0 +1,47 @@
+// H02 | Merge sort | 30-60 min | recursion on seq, merge, multiset, milestones [R20]
+// GOAL
+//   Implement merge sort on sequences: the result is sorted and a permutation of the input.
+//   Merge is M10 again (reuse it); the new part is the recursion and its permutation proof.
+//
+// REFERENCE
+//   method M(s: seq<int>) returns (r: seq<int>) decreases |s| { ... var x := M(s[..k]); ... }
+//   assert s == s[..k] + s[k..];               // so multiset(s) splits into the two halves
+//   multiset(a + b) == multiset(a) + multiset(b)
+//   assert a[..i + 1] == a[..i] + [a[i]];      // growing a prefix (M10)
+//   // Sorted only talks about positions; sortedness of a merge needs "c's last <= next ones".
+
+// BEGIN SPEC
+predicate Sorted(s: seq<int>) { forall i, j :: 0 <= i < j < |s| ==> s[i] <= s[j] }
+
+method MergeSort(s: seq<int>) returns (r: seq<int>)
+  ensures Sorted(r)
+  ensures multiset(r) == multiset(s)
+  decreases |s|
+// END SPEC
+{
+}
+
+// MILESTONE (optional: change or delete)
+method Merge(a: seq<int>, b: seq<int>) returns (c: seq<int>)
+  requires Sorted(a) && Sorted(b)
+  ensures Sorted(c)
+  ensures multiset(c) == multiset(a) + multiset(b)
+{
+}
+
+// MILESTONE (optional: change or delete)
+lemma MultisetSplit(s: seq<int>, k: int)
+  requires 0 <= k <= |s|
+  ensures multiset(s) == multiset(s[..k]) + multiset(s[k..])
+{
+}
+
+/* ─────────────────────────── HINTS (spoilers below) ───────────────────────────
+H1. Base case |s| <= 1 is already sorted. Otherwise split at |s| / 2, sort both halves
+    recursively, and merge.
+H2. The permutation proof in MergeSort is one assert: s == s[..mid] + s[mid..]. All the work is
+    in Merge: a two-pointer loop that always appends the smaller head.
+H3. Merge invariants: Sorted(c); multiset(c) == multiset(a[..i]) + multiset(b[..j]);
+    forall k :: 0 <= k < |c| && i < |a| ==> c[k] <= a[i]  (same for b, j);
+    decreases |a| - i + |b| - j
+*/

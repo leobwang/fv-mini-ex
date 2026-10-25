@@ -1,0 +1,688 @@
+{
+ "E01": {
+  "banned": [],
+  "spec": [
+   "5c89531fb67ffbd1"
+  ]
+ },
+ "E02": {
+  "banned": [],
+  "spec": [
+   "db12ec2f0fc0caeb",
+   "81201cd8689dbc73"
+  ]
+ },
+ "E03": {
+  "banned": [],
+  "spec": [
+   "1d34938e4a6e9afd",
+   "11403ad56208009f"
+  ]
+ },
+ "E04": {
+  "banned": [],
+  "spec": [
+   "5e0772b7ddba7a65",
+   "600617ce95771e2a"
+  ]
+ },
+ "E05": {
+  "banned": [],
+  "spec": [
+   "0adea329a866dc2b",
+   "1e7b313f8af68ee5"
+  ]
+ },
+ "E06": {
+  "banned": [],
+  "spec": [
+   "309ad66fa910d91c"
+  ]
+ },
+ "E07": {
+  "banned": [],
+  "spec": [
+   "0d50880055ee1fae"
+  ]
+ },
+ "E08": {
+  "banned": [],
+  "spec": [
+   "138c05fb633c0f27"
+  ]
+ },
+ "E09": {
+  "banned": [],
+  "spec": [
+   "4fd41cdd18bb4e08"
+  ]
+ },
+ "E10": {
+  "banned": [],
+  "spec": [
+   "59214c1762d07415",
+   "c04cbc18fa647236"
+  ]
+ },
+ "E11": {
+  "banned": [],
+  "spec": [
+   "6fad816141179895"
+  ]
+ },
+ "E12": {
+  "banned": [],
+  "spec": [
+   "a809b7e544970c64"
+  ]
+ },
+ "E13": {
+  "banned": [],
+  "spec": [
+   "3ed6707b9d6b6a38",
+   "8cc09f266cd3fc82"
+  ]
+ },
+ "E14": {
+  "banned": [],
+  "spec": [
+   "d95919acee46f6db",
+   "9e936f362e4dc7af"
+  ]
+ },
+ "E15": {
+  "banned": [],
+  "spec": [
+   "78e96c7004354cf6"
+  ]
+ },
+ "E16": {
+  "banned": [],
+  "spec": [
+   "4e4e58dc02629d3b"
+  ]
+ },
+ "E17": {
+  "banned": [],
+  "spec": [
+   "35d49da1addb3cb2"
+  ]
+ },
+ "E18": {
+  "banned": [],
+  "spec": [
+   "fc597dd017a546a7"
+  ]
+ },
+ "E19": {
+  "banned": [],
+  "spec": [
+   "f1c2b51c56319d98"
+  ]
+ },
+ "E20": {
+  "banned": [],
+  "spec": [
+   "71370f78c5f2b55d",
+   "54dee27eb7ffce0d",
+   "cea33b6821bb7ac5"
+  ]
+ },
+ "E21": {
+  "banned": [],
+  "spec": [
+   "ca7bea2c81ffd19a"
+  ]
+ },
+ "E22": {
+  "banned": [],
+  "spec": [
+   "b1d50de5a4100896"
+  ]
+ },
+ "E23": {
+  "banned": [],
+  "spec": [
+   "84117ca584affd94"
+  ]
+ },
+ "E24": {
+  "banned": [],
+  "spec": [
+   "19651cc65efca4a7",
+   "133c0285508c0a85"
+  ]
+ },
+ "E25": {
+  "banned": [],
+  "spec": [
+   "83bc274dddaa1749"
+  ]
+ },
+ "E26": {
+  "banned": [],
+  "spec": [
+   "5eb6df5a8be847c0",
+   "c0a0c4777ea92833"
+  ]
+ },
+ "E27": {
+  "banned": [],
+  "spec": [
+   "1bda51eae445938d",
+   "c27eefeccf2400b7"
+  ]
+ },
+ "E28": {
+  "banned": [],
+  "spec": [
+   "2cd331ad2245f9fe"
+  ]
+ },
+ "E29": {
+  "banned": [],
+  "spec": [
+   "4ccaf97353876ecd",
+   "f9b59b5b0e81b5a0"
+  ]
+ },
+ "E30": {
+  "banned": [],
+  "spec": [
+   "34997ccbb6501cb4",
+   "6a30e8b113f7ba84"
+  ]
+ },
+ "E31": {
+  "banned": [],
+  "spec": [
+   "7598896a10c985d4"
+  ]
+ },
+ "E32": {
+  "banned": [],
+  "spec": [
+   "0ad2e8c3af13dc41"
+  ]
+ },
+ "E33": {
+  "banned": [],
+  "spec": [
+   "72fd3525556e203d"
+  ]
+ },
+ "E34": {
+  "banned": [],
+  "spec": [
+   "376b4d7f3b47a527",
+   "dbe8914eabc48709"
+  ]
+ },
+ "E35": {
+  "banned": [],
+  "spec": [
+   "9bcb19490c49263d",
+   "a871c456087d421a"
+  ]
+ },
+ "E36": {
+  "banned": [],
+  "spec": [
+   "c25260ae05dabf38",
+   "e11458e099f16dab"
+  ]
+ },
+ "E37": {
+  "banned": [],
+  "spec": [
+   "685414c5d1797812"
+  ]
+ },
+ "E38": {
+  "banned": [],
+  "spec": [
+   "aed0d40c12aa975e",
+   "dea4f577e986ab44"
+  ]
+ },
+ "E39": {
+  "banned": [],
+  "spec": [
+   "3b8fd2defaad30cc"
+  ]
+ },
+ "E40": {
+  "banned": [],
+  "spec": [
+   "2ad75b304d144947",
+   "0b71f0671cc14b9f"
+  ]
+ },
+ "E41": {
+  "banned": [],
+  "spec": [
+   "9030e5778fdb7d0e",
+   "af029c5f5ec37f46"
+  ]
+ },
+ "E42": {
+  "banned": [],
+  "spec": [
+   "454176bcd2a0cf58",
+   "7746c08b95a827d3"
+  ]
+ },
+ "E43": {
+  "banned": [],
+  "spec": [
+   "eab1ff8e498d4593"
+  ]
+ },
+ "E44": {
+  "banned": [],
+  "spec": [
+   "868b0e3f075ce446"
+  ]
+ },
+ "E45": {
+  "banned": [],
+  "spec": [
+   "9f3ef2ec370cbf82"
+  ]
+ },
+ "H01": {
+  "banned": [],
+  "spec": [
+   "268a95e6b6a31c61"
+  ]
+ },
+ "H02": {
+  "banned": [],
+  "spec": [
+   "1a08e3670ff0ade0"
+  ]
+ },
+ "H03": {
+  "banned": [],
+  "spec": [
+   "6938d54ea0609ab6"
+  ]
+ },
+ "H04": {
+  "banned": [],
+  "spec": [
+   "6ccb2f8cd2030b26",
+   "af6a0d42a5babbf3",
+   "64c658d1cd27abd1",
+   "bc8675f7c05385c8",
+   "f6a006f35865a7f4",
+   "9df57411106ee4f4",
+   "cdd27c4762f2e9e0"
+  ]
+ },
+ "H05": {
+  "banned": [],
+  "spec": [
+   "54f4b57c116e6890",
+   "871ec3dbd044e9be",
+   "e4a6a78255b69c70",
+   "3597381dabda57f7",
+   "8e1187a87a4be8c9"
+  ]
+ },
+ "H06": {
+  "banned": [],
+  "spec": [
+   "4208099180d34318"
+  ]
+ },
+ "H07": {
+  "banned": [],
+  "spec": [
+   "e744cad318c55962",
+   "0b75e43035c07c5e"
+  ]
+ },
+ "H08": {
+  "banned": [],
+  "spec": [
+   "594c6f47117ec61e"
+  ]
+ },
+ "H09": {
+  "banned": [],
+  "spec": [
+   "8175d60786af77c8"
+  ]
+ },
+ "H10": {
+  "banned": [],
+  "spec": [
+   "b56362cb9dd5121f"
+  ]
+ },
+ "M01": {
+  "banned": [],
+  "spec": [
+   "027e62a40df9ecc4"
+  ]
+ },
+ "M02": {
+  "banned": [],
+  "spec": [
+   "015d170ced4379ea"
+  ]
+ },
+ "M03": {
+  "banned": [],
+  "spec": [
+   "1a9eac625bd7ae56"
+  ]
+ },
+ "M04": {
+  "banned": [],
+  "spec": [
+   "629cff89a6f65f10"
+  ]
+ },
+ "M05": {
+  "banned": [],
+  "spec": [
+   "22a9e9d78b4e748b"
+  ]
+ },
+ "M06": {
+  "banned": [],
+  "spec": [
+   "5f56a24dd3cc2205"
+  ]
+ },
+ "M07": {
+  "banned": [],
+  "spec": [
+   "dc58799c99123376"
+  ]
+ },
+ "M08": {
+  "banned": [],
+  "spec": [
+   "d1e522e23ca3d121"
+  ]
+ },
+ "M09": {
+  "banned": [],
+  "spec": [
+   "128b587ad3289978"
+  ]
+ },
+ "M10": {
+  "banned": [],
+  "spec": [
+   "6d53d6089284e490"
+  ]
+ },
+ "M11": {
+  "banned": [],
+  "spec": [
+   "5e0e1246ab3c4e56"
+  ]
+ },
+ "M12": {
+  "banned": [],
+  "spec": [
+   "84f8af4c0ceac818"
+  ]
+ },
+ "M13": {
+  "banned": [],
+  "spec": [
+   "41226879378f5639"
+  ]
+ },
+ "M14": {
+  "banned": [],
+  "spec": [
+   "44704804791a15d0",
+   "8fa4d0fc9a3704a8"
+  ]
+ },
+ "M15": {
+  "banned": [],
+  "spec": [
+   "d538e0980208e8d3",
+   "4aee31c7f8d659a9"
+  ]
+ },
+ "M16": {
+  "banned": [],
+  "spec": [
+   "08b8346bd8e0ecc0",
+   "bd2a9196c3f8bfd0"
+  ]
+ },
+ "M17": {
+  "banned": [],
+  "spec": [
+   "5c36574dce6492a4",
+   "66c0ac9ab4fdb9eb",
+   "cbc2282c8f5ce5e6"
+  ]
+ },
+ "M18": {
+  "banned": [],
+  "spec": [
+   "8456c596fcefe8a4",
+   "42e6bd6a71726c68",
+   "66352f53b6408b81"
+  ]
+ },
+ "M19": {
+  "banned": [],
+  "spec": [
+   "bf0a577a9acbea61",
+   "856fb66d08b5bf31",
+   "02e734a1b02f5754"
+  ]
+ },
+ "M20": {
+  "banned": [],
+  "spec": [
+   "bd8b42183af5c239",
+   "89c3922a3c904780",
+   "203fb04ef117f1aa",
+   "1fa4a9aa84fd21fd"
+  ]
+ },
+ "M21": {
+  "banned": [],
+  "spec": [
+   "802ba9c54855fb24",
+   "12e17f2142725a8d",
+   "909672b1ded94946"
+  ]
+ },
+ "M22": {
+  "banned": [],
+  "spec": [
+   "9a5aca0e2712d169"
+  ]
+ },
+ "M23": {
+  "banned": [],
+  "spec": [
+   "06d7819bb9b14cca",
+   "a14b3785b329b584",
+   "8b9fd29ca4f29bd7",
+   "5efafb39efe4d06f"
+  ]
+ },
+ "M24": {
+  "banned": [],
+  "spec": [
+   "c0ea326e4b7c0442",
+   "004505c59946190e",
+   "6fea6eb547198e47",
+   "9da4aac61c7185e4",
+   "7954618eb9bfde2c"
+  ]
+ },
+ "M25": {
+  "banned": [],
+  "spec": [
+   "5d62327910771e02",
+   "93ead91fef2252a6",
+   "35998c2b1d115c7a",
+   "be2ad7421b327ae8"
+  ]
+ },
+ "M26": {
+  "banned": [],
+  "spec": [
+   "eca2ec20594d7657",
+   "8aed010ece7785db",
+   "ef7cfc7c61b78926",
+   "4d6ed73229a5fb6d",
+   "8aed010ece7785db",
+   "ef7cfc7c61b78926",
+   "fa4fb6bcf9a4610c"
+  ]
+ },
+ "M27": {
+  "banned": [],
+  "spec": [
+   "72366ad84ac95bdd",
+   "2490a58005f179b9"
+  ]
+ },
+ "M28": {
+  "banned": [],
+  "spec": [
+   "15962fed6cc12f96",
+   "232c584bb23accdd",
+   "5ca7352ca12a8078"
+  ]
+ },
+ "M29": {
+  "banned": [],
+  "spec": [
+   "fbed8733e0aa6ebf",
+   "97ebe64f8e0bd87d",
+   "86dd566c195441db",
+   "9b88d31011a034fc"
+  ]
+ },
+ "M30": {
+  "banned": [],
+  "spec": [
+   "9c323f804b35ea6d",
+   "37252b68efddc6e6",
+   "ca600875fff2842e"
+  ]
+ },
+ "M31": {
+  "banned": [],
+  "spec": [
+   "ec936c1801819d8c",
+   "54332f8ef9625ea3",
+   "a14ce24a1783e9f1",
+   "91422ceee2b9f884",
+   "2838e41e550a9959",
+   "8c3bac74ac2408bb"
+  ]
+ },
+ "M32": {
+  "banned": [],
+  "spec": [
+   "2e2166e631ccb456",
+   "c4a33ee0c7079f0e"
+  ]
+ },
+ "M33": {
+  "banned": [],
+  "spec": [
+   "5cf00022febe8605",
+   "e8e6a8719ba1fe0f"
+  ]
+ },
+ "M34": {
+  "banned": [],
+  "spec": [
+   "5fbebd197f741884",
+   "aeccaf2ceec8088d",
+   "df97a998aa25b631"
+  ]
+ },
+ "M35": {
+  "banned": [],
+  "spec": [
+   "494da16bb39dcfc5"
+  ]
+ },
+ "M36": {
+  "banned": [],
+  "spec": [
+   "69471c019f22493b"
+  ]
+ },
+ "M37": {
+  "banned": [],
+  "spec": [
+   "ad17338a4b92692a"
+  ]
+ },
+ "M38": {
+  "banned": [],
+  "spec": [
+   "579fe51a73cef244"
+  ]
+ },
+ "M39": {
+  "banned": [],
+  "spec": [
+   "234a4807a2b2f879"
+  ]
+ },
+ "M40": {
+  "banned": [],
+  "spec": [
+   "6e100611f59fabd6"
+  ]
+ },
+ "M41": {
+  "banned": [],
+  "spec": [
+   "84d73648fcbde086",
+   "b5b826a889a24165",
+   "392b17aecf4ffd0b"
+  ]
+ },
+ "M42": {
+  "banned": [],
+  "spec": [
+   "1780f2eb198a623d",
+   "9a35767f1fd3ce84",
+   "3c77cf7c7f0e5de5"
+  ]
+ },
+ "M43": {
+  "banned": [],
+  "spec": [
+   "74a59df69c6b92b8"
+  ]
+ },
+ "M44": {
+  "banned": [],
+  "spec": [
+   "709cbd20d023095d",
+   "6ff18fbe508d444e",
+   "1a24fc6e50e59b52",
+   "add54f712413399a"
+  ]
+ },
+ "M45": {
+  "banned": [],
+  "spec": [
+   "d3383817b0056f06"
+  ]
+ }
+}
