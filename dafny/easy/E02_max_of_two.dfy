@@ -14,6 +14,7 @@ method Max(a: int, b: int) returns (m: int)
   ensures m == a || m == b
 // END SPEC
 {
+  m := if a > b then a else b;
 }
 
 // BEGIN SPEC
@@ -22,6 +23,8 @@ method Max3(a: int, b: int, c: int) returns (m: int)
   ensures m == a || m == b || m == c
 // END SPEC
 {
+  var mab := Max(a, b);
+  m := Max(mab, c);
 }
 
 /* ─────────────────────────── HINTS (spoilers below) ───────────────────────────

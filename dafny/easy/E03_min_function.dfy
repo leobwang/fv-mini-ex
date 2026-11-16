@@ -15,7 +15,7 @@ function Min(a: int, b: int): int
   ensures Min(a, b) == a || Min(a, b) == b
 // END SPEC
 {
-  0 // TODO
+  if a < b then a else b // TODO
 }
 
 // BEGIN SPEC
@@ -23,6 +23,7 @@ method Min3(a: int, b: int, c: int) returns (m: int)
   ensures m == Min(a, Min(b, c))
 // END SPEC
 {
+  m := Min(a, Min(b, c));
 }
 
 /* ─────────────────────────── HINTS (spoilers below) ───────────────────────────

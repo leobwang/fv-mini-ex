@@ -13,24 +13,26 @@ REFERENCE
 import Mathlib
 
 -- BEGIN SPEC
-theorem square_sum (a b : ℤ) : (a + b) ^ 2 = a ^ 2 + 2 * a * b + b ^ 2 :=
+theorem square_sum (a b : ℤ) : (a + b) ^ 2 = a ^ 2 + 2 * a * b + b ^ 2 := by
 -- END SPEC
-  sorry
+  ring
 
 -- BEGIN SPEC
-theorem cube_succ (n : ℕ) : (n + 1) ^ 3 = n ^ 3 + 3 * n ^ 2 + 3 * n + 1 :=
+theorem cube_succ (n : ℕ) : (n + 1) ^ 3 = n ^ 3 + 3 * n ^ 2 + 3 * n + 1 := by
 -- END SPEC
-  sorry
+  ring
 
 -- BEGIN SPEC
-theorem with_hyp (a b c : ℚ) (h : a = b + c) : a ^ 2 - 2 * b * c = b ^ 2 + c ^ 2 :=
+theorem with_hyp (a b c : ℚ) (h : a = b + c) : a ^ 2 - 2 * b * c = b ^ 2 + c ^ 2 := by
 -- END SPEC
-  sorry
+  rw [h]
+  ring
 
 -- BEGIN SPEC
-theorem four_squares (x y : ℝ) : (x + y) ^ 2 + (x - y) ^ 2 = 2 * (x ^ 2 + y ^ 2) :=
+theorem four_squares (x y : ℝ) : (x + y) ^ 2 + (x - y) ^ 2 = 2 * (x ^ 2 + y ^ 2) := by
 -- END SPEC
-  sorry
+  ring
+
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. Three goals are pure identities; one needs the hypothesis first.

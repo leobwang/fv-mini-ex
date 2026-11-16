@@ -12,17 +12,17 @@ REFERENCE
 import Mathlib
 
 -- BEGIN SPEC
-theorem solve_two (x y : ℝ) (h1 : x + y = 10) (h2 : x - y = 2) : x = 6 :=
+theorem solve_two (x y : ℝ) (h1 : x + y = 10) (h2 : x - y = 2) : x = 6 := by
 -- END SPEC
-  sorry
+  linarith
 
 -- BEGIN SPEC
-theorem chain_pos (a b c : ℝ) (h1 : a < b) (h2 : b ≤ c) (h3 : 0 < a) : 0 < 2 * c - a :=
+theorem chain_pos (a b c : ℝ) (h1 : a < b) (h2 : b ≤ c) (h3 : 0 < a) : 0 < 2 * c - a := by
 -- END SPEC
-  sorry
+  linarith
 
 -- BEGIN SPEC
-theorem sq_bound (x y : ℝ) : 4 * x * y ≤ (x + y) ^ 2 :=
+theorem sq_bound (x y : ℝ) : 4 * x * y ≤ (x + y) ^ 2 := by
 -- END SPEC
   sorry
 

@@ -21,7 +21,7 @@ fn abs(x: i64) -> (r: i64)
     ensures r >= 0, r == x || r == -x,
 // END SPEC
 {
-    0 // TODO
+    if x < 0 {-x} else {x}
 }
 
 } // verus!

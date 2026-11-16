@@ -17,16 +17,22 @@ open Finset
 namespace M051
 
 -- BEGIN SPEC
-theorem gauss (n : ℕ) : 2 * ∑ i ∈ range (n + 1), i = n * (n + 1) :=
+theorem gauss (n : ℕ) : 2 * ∑ i ∈ range (n + 1), i = n * (n + 1) := by
 -- END SPEC
-  sorry
+  induction n with
+  | zero => simp
+  | succ n ih => rw[sum_range_succ, mul_add, ih]; ring
 
 -- BEGIN SPEC
-theorem sum_odd (n : ℕ) : ∑ i ∈ range n, (2 * i + 1) = n ^ 2 :=
--- END SPEC
-  sorry
+theorem sum_odd (n : ℕ) : ∑ i ∈ range n, (2 * i + 1) = n ^ 2 := by
+-- END SPEC3
+  induction n with
+  | zero => simp
+  | succ n ih => rw[sum_range_succ, ih]; ring
 
 end M051
+
+#check sum_range_succ
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. Both are inductions on `n` where the step adds one term.

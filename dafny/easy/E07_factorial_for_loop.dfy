@@ -16,6 +16,14 @@ method ComputeFact(n: nat) returns (f: nat)
   ensures f == Fact(n)
 // END SPEC
 {
+  f := 1;
+  var i := 0;
+  for i := 1 to n + 1
+  invariant 1 <= i <= n + 1
+  invariant f == Fact(i - 1)
+  {
+    f := i * f;
+  }
 }
 
 /* ─────────────────────────── HINTS (spoilers below) ───────────────────────────

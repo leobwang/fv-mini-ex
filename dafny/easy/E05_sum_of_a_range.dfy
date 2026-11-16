@@ -12,9 +12,10 @@
 
 // BEGIN SPEC
 function SumRange(lo: int, hi: int): int
+decreases hi - lo
 // END SPEC
 {
-  0 // TODO
+  if lo >= hi then 0 else lo + SumRange(lo + 1, hi) // TODO
 }
 
 // BEGIN SPEC

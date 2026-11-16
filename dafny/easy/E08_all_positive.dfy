@@ -14,6 +14,14 @@ method AllPositive(a: array<int>) returns (b: bool)
   ensures b <==> forall i :: 0 <= i < a.Length ==> a[i] > 0
 // END SPEC
 {
+  var i := 0;
+  for i := 0 to a.Length
+  invariant 0 <= i <= a.Length
+  invariant forall j :: 0 <= j < i ==> a[j] > 0
+  {
+    if a[i] <= 0 {return false;}
+  }
+  return true;
 }
 
 /* ─────────────────────────── HINTS (spoilers below) ───────────────────────────

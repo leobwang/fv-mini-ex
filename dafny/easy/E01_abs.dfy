@@ -16,6 +16,7 @@ method Abs(x: int) returns (y: int)
   ensures y == x || y == -x
 // END SPEC
 {
+  if x < 0 { y := -x; } else { y := x; }
 }
 
 /* ─────────────────────────── HINTS (spoilers below) ───────────────────────────

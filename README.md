@@ -52,10 +52,17 @@ You need `elan` (Lean), `rustup` (Verus needs Rust 1.98.1, which setup installs)
 On a fresh Mac the first Lean setup downloads the Mathlib cache (a few GB) and compiles the physlib
 modules the exercises use (physlib has no prebuilt cache; about 10–20 minutes, once).
 
-**Editors.**
-- Lean: VS Code + the `lean4` extension, opening the `lean/` folder (it holds the Lake project).
-- Dafny: the Dafny VS Code extension, with "Dafny: Cli Path" set to `.toolchain/dafny/dafny`.
-- Verus: `./check` gives the errors; verus-analyzer is optional.
+**Editors.** Open the repo root in VS Code and accept the recommended extensions (`lean4`, Dafny);
+`.vscode/` configures the rest.
+- Lean and Dafny report errors as you type. Dafny uses `.toolchain/dafny` at the `./check` resource limit.
+  Two catches: the extension won't start unless `dotnet` is on PATH (`brew install dotnet`), though Dafny
+  itself doesn't use it, and `dafny.cliPath` in `.vscode/settings.json` assumes the repo is at
+  `~/code/learn/fv-mini-ex`. If it's elsewhere, change that path. Reload the window after either change.
+- Verus only reads saved files, so `.rs` files auto-save and the "Watch Verus" task re-checks them; errors
+  update about a second after you stop typing. The task starts with the folder only if automatic tasks are
+  allowed, and VS Code's "Allow" turns that on for every trusted folder. Otherwise start it from "Run Task".
+- Cmd+Shift+B (Ctrl+Shift+B on Linux) runs `./check` on the active file in any language.
+- "Run Task → Check whole track" runs a whole language. Solutions are excluded from search and Cmd+P.
 
 ## Workflow
 

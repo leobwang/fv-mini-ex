@@ -15,7 +15,7 @@ fn max2(a: i64, b: i64) -> (r: i64)
     ensures r >= a, r >= b, r == a || r == b,
 // END SPEC
 {
-    0 // TODO
+    if 
 }
 
 } // verus!
