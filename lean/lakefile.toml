@@ -8,3 +8,12 @@ version = "0.1.0"
 name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.32.0"
+
+# physlib (formerly PhysLean) ships the `Physlib` and `QuantumInfo` libraries.
+# This commit (2026-08-15) is the last one on Lean v4.32.0 and pins the same
+# Mathlib rev as above. physlib has no prebuilt cache: tools/setup.sh builds the
+# two libraries once.
+[[require]]
+name = "physlib"
+git = "https://github.com/leanprover-community/physlib"
+rev = "ba2a946586c7de1ff394607afd1dd7fe8539a364"

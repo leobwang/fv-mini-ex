@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as cf
+import contextlib
+import fcntl
 import hashlib
 import json
 import os
@@ -43,7 +45,7 @@ VERUS_RLIMIT = {"learner": 10, "strict": 5}
 LEAN_ALLOWED_AXIOMS = {"propext", "Classical.choice", "Quot.sound"}
 
 HEADER_RE = re.compile(
-    r"^\s*(?:/-!?|--|//|/\*!?)\s*([EMH]\d{2})\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.*?)\s*(?:-/|\*/)?\s*$"
+    r"^\s*(?:/-!?|--|//|/\*!?)\s*([EMH]\d{2,3})\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.*?)\s*(?:-/|\*/)?\s*$"
 )
 # A marker is a line holding only the marker in a line comment, so prose that
 # mentions "BEGIN SPEC" (cards, hints) is not mistaken for one.
@@ -205,6 +207,7 @@ class Problem:
     pid: str
     tier: str
     path: Path
+    topic: str = ""  # e.g. "06_probability" for lean/medium/06_probability/M041_x.lean
 
     @property
     def rel(self) -> str:
@@ -218,11 +221,24 @@ def problems(lang: Lang, solutions: bool) -> list[Problem]:
         d = base / tier
         if not d.is_dir():
             continue
-        for p in sorted(d.glob(f"*{lang.ext}")):
-            m = re.match(r"([EMH]\d{2})_", p.name)
+        # Problems may sit directly in the tier folder or one level down in a topic folder.
+        for p in sorted(d.glob(f"*{lang.ext}")) + sorted(d.glob(f"*/*{lang.ext}")):
+            m = re.match(r"([EMH]\d{2,3})_", p.name)
             if m:
-                out.append(Problem(lang, m[1], tier, p))
+                topic = p.parent.name if p.parent != d else ""
+                out.append(Problem(lang, m[1], tier, p, topic))
+    out.sort(key=lambda q: (TIERS.index(q.tier), id_key(q.pid)))
+    seen: dict[str, Problem] = {}
+    for q in out:
+        if q.pid in seen:
+            sys.exit(f"error: duplicate id {q.pid}: {seen[q.pid].rel} and {q.rel}")
+        seen[q.pid] = q
     return out
+
+
+def id_key(pid: str) -> tuple[str, int]:
+    """`M41`, `m041` and `M041` all name the same problem."""
+    return pid[0].upper(), int(pid[1:])
 
 
 def load_specs(lang: Lang) -> dict:
@@ -243,6 +259,15 @@ def forbidden_hits(src: str, lang: Lang) -> list[str]:
 BANNED_RE = re.compile(r"^\s*(?:--|//)?\s*BANNED:\s*(.+?)\s*$", re.M)
 
 
+AXIOMS_RE = re.compile(r"^\s*(?:--|//)?\s*AXIOMS:\s*(.+?)\s*$", re.M)
+
+
+def allowed_axioms(src: str) -> list[str] | None:
+    """Lean: a card line `AXIOMS: propext, Quot.sound` narrows the allowed axioms."""
+    m = AXIOMS_RE.search(src)
+    return [a.strip() for a in m[1].split(",") if a.strip()] if m else None
+
+
 def banned_names(src: str) -> list[str]:
     """Library names a problem forbids (declared on a `BANNED: a, b` line of the card)."""
     return [n.strip() for m in BANNED_RE.finditer(src) for n in m[1].split(",") if n.strip()]
@@ -252,10 +277,15 @@ def banned_hits(src: str, lang: Lang, banned: list[str]) -> list[str]:
     """Match on the last name component, so `open Nat` + `foo` is caught like `Nat.foo`.
     Spec regions are skipped: the frozen statement may itself use the banned name."""
     code = strip_comments(blank_spec_regions(src), lang)
+    if lang.name == "lean":  # λ, Π, Σ are reserved in Lean, never part of an identifier
+        code = re.sub(r"([λΠΣ])", r" \1 ", code)
     hits = []
     for name in banned:
-        last = name.rsplit(".", 1)[-1]
-        for m in re.finditer(rf"(?<![\w']){re.escape(last)}(?![\w'])", code):
+        last = name.rsplit(".", 1)[-1] if re.search(r"\w\.\w", name) else name
+        # Word boundaries only on word-character ends: `λ`, `▸`, `try?` must match in `λhp`, `h▸rfl`.
+        left = r"(?<![\w'])" if re.match(r"\w", last) else ""
+        right = r"(?![\w'])" if re.search(r"\w$", last) else ""
+        for m in re.finditer(left + re.escape(last) + right, code):
             hits.append(f"line {code.count(chr(10), 0, m.start()) + 1}: banned for this problem: {name}")
     return hits
 
@@ -287,13 +317,17 @@ def spec_problems(src: str, pid: str, frozen: dict) -> list[str]:
 # ---------------------------------------------------------------- verifiers
 
 
-def lean_decl_names(src: str) -> list[str]:
-    """Fully qualified names of the declarations inside spec regions."""
-    names, stack, in_spec = [], [], False
-    decl = re.compile(
-        r"^\s*(?:@\[[^\]]*\]\s*)*(?:(?:private|protected|noncomputable|partial)\s+)*"
-        r"(?:theorem|lemma|def|abbrev|instance)\s+([^\s:({\[]+)"
-    )
+LEAN_DECL_RE = re.compile(
+    r"^\s*(?:@\[[^\]]*\]\s*)*(?:(?:private|protected|noncomputable|partial|unsafe)\s+)*"
+    r"(class\s+inductive|theorem|lemma|def|abbrev|instance|inductive|structure|class)\s+([^\s:({\[]+)"
+)
+LEAN_PROOF_KINDS = ("theorem", "lemma", "def", "abbrev", "instance")  # gated by #print axioms
+LEAN_VALUE_KINDS = ("def", "abbrev", "instance")  # value frozen when the stub gives it
+
+
+def lean_decls(src: str) -> list[tuple[str, str]]:
+    """(fully qualified name, kind) of each named declaration inside spec regions."""
+    decls, stack, in_spec = [], [], False
     for line in src.splitlines():
         if SPEC_BEGIN_RE.match(line):
             in_spec = True; continue
@@ -306,47 +340,101 @@ def lean_decl_names(src: str) -> list[str]:
             stack.append(None)
         elif re.match(r"end\b", s) and stack and not in_spec:
             stack.pop()
-        elif in_spec and (m := decl.match(line)):
+        elif in_spec and (m := LEAN_DECL_RE.match(line)):
             prefix = ".".join(x for x in stack if x)
-            names.append(f"{prefix}.{m[1]}" if prefix else m[1])
-    return names
+            kind = "inductive" if m[1].startswith("class") and "inductive" in m[1] else m[1]
+            decls.append((f"{prefix}.{m[2]}" if prefix else m[2], kind))
+    return decls
 
 
-def verify_lean(p: Problem, mode: str) -> tuple[str, str]:
+def lean_ident(name: str) -> str:
+    return ".".join(f"\u00ab{c}\u00bb" for c in name.split("."))
+
+
+@dataclass
+class LeanRun:
+    ok: bool                       # compiled without errors
+    out: str
+    axioms: dict[str, set[str]]    # name -> axioms used (proof kinds only)
+    types: dict[str, str]          # name -> hash of its pp.all elaborated type
+    values: dict[str, str]         # name -> hash of its pp.all value (requested names only)
+
+
+def lean_run(p: Problem, value_names: list[str] | None = None) -> LeanRun:
+    """Compile the file with probes appended: #print axioms per spec declaration, and the
+    fully explicit (pp.all) type of each, plus the value of the given definitions. Hashing the
+    elaborated form catches context tricks (variable, open, instances, notation, macros) that
+    change what a frozen statement means without changing its text."""
     src = p.path.read_text()
-    names = lean_decl_names(src)
+    decls = lean_decls(src)
+    if value_names is None:
+        value_names = [n for n, k in decls if k in LEAN_VALUE_KINDS]
+    probe = ["", ""]
+    probe += [f"#print axioms {lean_ident(n)}" for n, k in decls if k in LEAN_PROOF_KINDS]
+    for n, _ in decls:
+        probe += [f'#eval "FVSEC type {n}"', "set_option pp.all true in", f"#check @{lean_ident(n)}"]
+    for n in value_names:
+        probe += [f'#eval "FVSEC value {n}"', "set_option pp.all true in", f"#print {lean_ident(n)}"]
+    probe += ['#eval "FVSEC end"', ""]
     tmpdir = ROOT / "lean" / ".lake" / "fvcheck"
     tmpdir.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", suffix=".lean", dir=tmpdir, delete=False) as f:
-        f.write(src + "\n\n" + "".join(f"#print axioms {n}\n" for n in names))
+        f.write(src + "\n".join(probe))
         tmp = f.name
     try:
         code, out = run([lake(), "env", "lean", tmp], cwd=ROOT / "lean")
     finally:
         os.unlink(tmp)
     out = out.replace(tmp, p.rel)
-    if code != 0 or re.search(r"(^|\n)\S*:\d+:\d+: error", out):
-        return "FAIL", out
-    used = {}
+    ok = code == 0 and not re.search(r"(^|\n)\S*:\d+:\d+: error", out)
+    axioms: dict[str, set[str]] = {}
     for m in re.finditer(r"'(\S+)' depends on axioms: \[(.*?)\]", out, re.S):
-        used[m[1]] = {a.strip() for a in m[2].split(",") if a.strip()}
+        axioms[m[1]] = {a.strip() for a in m[2].split(",") if a.strip()}
     for m in re.finditer(r"'(\S+)' does not depend on any axioms", out):
-        used[m[1]] = set()
-    missing = [n for n in names if n not in used]
+        axioms[m[1]] = set()
+    types: dict[str, str] = {}
+    values: dict[str, str] = {}
+    parts = re.split(r'^"FVSEC (type|value|end) ?(.*)"$', out, flags=re.M)
+    # parts = [prefix, kind, name, body, kind, name, body, ...]
+    for i in range(1, len(parts) - 2, 3):
+        kind, name, body = parts[i], parts[i + 1], parts[i + 2]
+        if kind == "end":
+            continue
+        text = "\n".join(l.rstrip() for l in body.strip().splitlines())
+        (types if kind == "type" else values)[name] = sha(text)
+    printed = "\n".join(l for l in out.splitlines() if not l.startswith('"FVSEC'))
+    return LeanRun(ok, printed, axioms, types, values)
+
+
+def verify_lean(p: Problem, mode: str, entry: dict | None = None) -> tuple[str, str]:
+    r = lean_run(p, value_names=list((entry or {}).get("elab", {}).get("values", {})))
+    out = r.out
+    if not r.ok:
+        return "FAIL", out
+    names = [n for n, k in lean_decls(p.path.read_text()) if k in LEAN_PROOF_KINDS]
+    missing = [n for n in names if n not in r.axioms]
     if missing:
         return "FAIL", out + f"\n[checker] could not read axioms for: {missing}"
-    holes = [n for n, ax in used.items() if "sorryAx" in ax]
-    bad = {n: ax - LEAN_ALLOWED_AXIOMS - {"sorryAx"} for n, ax in used.items()}
+    elab = (entry or {}).get("elab")
+    if elab:
+        changed = [n for n, h in elab["types"].items() if r.types.get(n) != h]
+        changed += [n for n, h in elab["values"].items() if r.values.get(n) != h]
+        if changed:
+            return "FAIL", out + (f"\n[checker] the elaborated meaning of frozen declarations changed: {changed}"
+                                  " (did code outside the spec add a variable, open, instance or notation?)")
+    allowed = set((entry or {}).get("axioms") or LEAN_ALLOWED_AXIOMS)
+    holes = [n for n, ax in r.axioms.items() if "sorryAx" in ax]
+    bad = {n: ax - allowed - {"sorryAx"} for n, ax in r.axioms.items()}
     bad = {n: ax for n, ax in bad.items() if ax}
     if bad:
-        return "FAIL", out + f"\n[checker] non-standard axioms: {bad}"
+        return "FAIL", out + f"\n[checker] axioms not allowed here (allowed: {sorted(allowed)}): {bad}"
     if holes:
         done = len(names) - len(holes)
         return "TODO", out + f"\n[checker] {done}/{len(names)} spec declarations sorry-free; still open: {holes}"
     return "PASS", out
 
 
-def verify_dafny(p: Problem, mode: str) -> tuple[str, str]:
+def verify_dafny(p: Problem, mode: str, entry: dict | None = None) -> tuple[str, str]:
     cmd = [tool("dafny"), "verify", "--resource-limit", str(DAFNY_RLIMIT[mode]), "--cores", "2", p.rel]
     code, out = run(cmd, cwd=ROOT)
     if code == 0:
@@ -356,7 +444,7 @@ def verify_dafny(p: Problem, mode: str) -> tuple[str, str]:
     return "FAIL", out
 
 
-def verify_verus(p: Problem, mode: str) -> tuple[str, str]:
+def verify_verus(p: Problem, mode: str, entry: dict | None = None) -> tuple[str, str]:
     cmd = [tool("verus"), "--crate-type=lib", "--no-cheating", "--rlimit", str(VERUS_RLIMIT[mode]),
            "--num-threads", "2", p.rel]
     code, out = run(cmd, cwd=ROOT)
@@ -374,8 +462,8 @@ VERIFY = {"lean": verify_lean, "dafny": verify_dafny, "verus": verify_verus}
 def wellformed(p: Problem) -> tuple[bool, str]:
     """Stub must type-check (holes allowed)."""
     if p.lang.name == "lean":
-        st, out = verify_lean(p, "learner")
-        return st in ("TODO", "PASS"), out
+        r = lean_run(p)
+        return r.ok, r.out
     if p.lang.name == "dafny":
         code, out = run([tool("dafny"), "resolve", p.rel], cwd=ROOT)
         return code == 0, out
@@ -391,7 +479,7 @@ def check_one(p: Problem, mode: str, frozen: dict) -> tuple[str, list[str], str]
     issues = [f"forbidden: {h}" for h in forbidden_hits(src, p.lang)]
     issues += spec_problems(src, p.pid, frozen)
     issues += banned_hits(src, p.lang, frozen.get(p.pid, {}).get("banned", []))
-    status, out = VERIFY[p.lang.name](p, mode)
+    status, out = VERIFY[p.lang.name](p, mode, frozen.get(p.pid))
     if issues:
         status = "FAIL"
     return status, issues, out
@@ -412,40 +500,84 @@ def check_stub(p: Problem, frozen: dict) -> tuple[str, list[str], str]:
     if not ok:
         issues.append("stub does not type-check")
     else:
-        st, out2 = VERIFY[p.lang.name](p, "learner")
+        st, out2 = VERIFY[p.lang.name](p, "learner", frozen.get(p.pid))
         if st == "PASS":
             issues.append("stub already passes (nothing to do)")
         out += "\n" + out2
     return ("PASS" if not issues else "FAIL"), issues, out
 
 
-def freeze(langs: list[Lang]) -> None:
+@contextlib.contextmanager
+def specs_lock(lang: Lang):
+    """Serialize read-modify-write of specs.json across concurrent ./check runs."""
+    with open(ROOT / lang.name / ".specs.lock", "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def freeze(langs: list[Lang], ids: set[tuple[str, int]], jobs: int) -> None:
+    """Freeze every stub, or with ids only those (merging into the existing specs.json)."""
     for lang in langs:
-        specs = {}
-        for p in problems(lang, solutions=False):
-            src = p.path.read_text()
-            try:
-                regs = spec_regions(src)
-            except ValueError as e:
-                sys.exit(f"error: {p.rel}: {e}")
-            if not regs:
-                print(f"warning: {p.rel} has no spec regions")
-            specs[p.pid] = {"spec": [sha(t) for _, t in regs], "banned": banned_names(src)}
-        out = ROOT / lang.name / "specs.json"
-        out.write_text(json.dumps(specs, indent=1, sort_keys=True) + "\n")
-        print(f"froze {len(specs)} specs -> {out.relative_to(ROOT)}")
+        with specs_lock(lang):
+            freeze_lang(lang, ids, jobs)
+
+
+def freeze_entry(p: Problem) -> dict:
+    src = p.path.read_text()
+    try:
+        regs = spec_regions(src)
+    except ValueError as e:
+        sys.exit(f"error: {p.rel}: {e}")
+    if not regs:
+        print(f"warning: {p.rel} has no spec regions")
+    entry = {"spec": [sha(t) for _, t in regs], "banned": banned_names(src)}
+    if p.lang.name == "lean":
+        decls = lean_decls(src)
+        entry["axioms"] = allowed_axioms(src)
+        r = lean_run(p)
+        if not r.ok:
+            sys.exit(f"error: {p.rel} does not compile; cannot freeze it\n{tail(r.out)}")
+        missing = [n for n, _ in decls if n not in r.types]
+        if missing:
+            sys.exit(f"error: {p.rel}: could not read the elaborated type of {missing}")
+        given = [n for n, k in decls if k in LEAN_VALUE_KINDS and "sorryAx" not in r.axioms.get(n, {"sorryAx"})]
+        entry["elab"] = {"types": r.types, "values": {n: r.values[n] for n in given if n in r.values}}
+    return entry
+
+
+def freeze_lang(lang: Lang, ids: set[tuple[str, int]], jobs: int) -> None:
+    specs = load_specs(lang) if ids else {}
+    todo = [p for p in problems(lang, solutions=False) if not ids or id_key(p.pid) in ids]
+    with cf.ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
+        for p, entry in zip(todo, ex.map(freeze_entry, todo)):
+            specs[p.pid] = entry
+    out = ROOT / lang.name / "specs.json"
+    tmp = out.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(specs, indent=1, sort_keys=True) + "\n")
+    tmp.replace(out)
+    print(f"froze {len(todo)} specs ({len(specs)} total) -> {out.relative_to(ROOT)}")
 
 
 def index(langs: list[Lang]) -> None:
     for lang in langs:
-        rows = {t: [] for t in TIERS}
+        groups: dict[tuple[str, str], list[str]] = {}
         for p in problems(lang, solutions=False):
             h = parse_header(p.path.read_text()) or {"title": "?", "time": "?", "tags": "?"}
-            rows[p.tier].append(f"| {p.pid} | [{h['title']}]({p.tier}/{p.path.name}) | {h['time']} | {h['tags']} |")
+            link = p.path.relative_to(ROOT / lang.name)
+            groups.setdefault((p.tier, p.topic), []).append(f"| {p.pid} | [{h['title']}]({link}) | {h['time']} | {h['tags']} |")
         md = [f"# {lang.name.capitalize()} problems", "",
               "Generated by `./check --index`. `[Rnn]` marks a problem that also appears in the other languages.", ""]
         for t in TIERS:
-            md += [f"## {t.capitalize()} ({len(rows[t])})", "", "| ID | Problem | Time | Tags |", "|---|---|---|---|", *rows[t], ""]
+            topics = [(k, v) for k, v in groups.items() if k[0] == t]
+            md += [f"## {t.capitalize()} ({sum(len(v) for _, v in topics)})", ""]
+            for (_, topic), rows in topics:
+                if topic:
+                    name = topic.split('_', 1)[-1].replace('_', ' ')
+                    md += [f"### {name[:1].upper() + name[1:]} ({len(rows)})", ""]
+                md += ["| ID | Problem | Time | Tags |", "|---|---|---|---|", *rows, ""]
         (ROOT / lang.name / "INDEX.md").write_text("\n".join(md))
         print(f"wrote {lang.name}/INDEX.md")
 
@@ -475,10 +607,13 @@ def main() -> None:
     langs = list(LANGS.values())
     if targets and targets[0] in LANGS:
         langs = [LANGS[targets.pop(0)]]
-    ids = {t.upper() for t in targets}
+    try:
+        ids = {id_key(t) for t in targets}
+    except ValueError:
+        sys.exit(f"error: bad problem id in {targets}")
 
     if a.freeze:
-        return freeze(langs)
+        return freeze(langs, ids, a.jobs)
     if a.index:
         return index(langs)
 
@@ -486,7 +621,7 @@ def main() -> None:
     for lang in langs:
         frozen = load_specs(lang)
         for p in problems(lang, solutions=a.solutions):
-            if not ids or p.pid in ids:
+            if not ids or id_key(p.pid) in ids:
                 jobs.append((p, frozen))
     if not jobs:
         sys.exit("no matching problems")

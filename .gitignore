@@ -2,3 +2,5 @@
 tools/local-paths
 lean/.lake/
 __pycache__/
+.specs.lock
+*.json.tmp

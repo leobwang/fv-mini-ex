@@ -15,7 +15,7 @@ This file is the contract every problem must meet. Learner-facing docs are `READ
 
 ## 2. Shape
 
-Per language: **100 problems = 45 easy (E01–E45) + 45 medium (M01–M45) + 10 hard (H01–H10).**
+Dafny and Verus: **100 problems each = 45 easy (E01–E45) + 45 medium (M01–M45) + 10 hard (H01–H10).** Lean has grown past this: 127 easy, 192 medium, 115 hard (see §11).
 
 | Tier | Budget | Typical solution size | What it exercises |
 |---|---|---|---|
@@ -281,3 +281,77 @@ tier so each problem builds on the earlier ones. Mark the construct each problem
    tables and code, each entry pointing to the problem IDs that use it. End with a `## Cheatsheet`
    section: the 30–50 most-used items on one screen.
 5. `./check --index <lang>`, then a final full `./check --stubs <lang>` and `./check --solutions <lang>`.
+
+## 11. Lean track v2: three tiers of ~100, topics, domain libraries
+
+The Lean track grows to at least 100 problems per tier. The counts are **targets, not caps**: go
+past them whenever a problem teaches something the others don't, and never pad to reach them.
+Dafny and Verus keep §2.
+
+**IDs and layout.** Lean IDs have 3 digits (`E001`, `M041`, `H063`) and are dense, in teaching
+order: easy E001–E127; medium M001–M192 and hard H001–H115, numbered contiguously topic by topic in
+the order of the table below. Easy problems sit flat in `lean/easy/`. Medium and hard problems sit in
+topic folders, `lean/<tier>/<NN_topic>/`, mirrored under `lean/solutions/`. To add problems, append
+new IDs at the end of a tier (or within a topic, then run `tools/lean_renumber.py` with a mapping to
+re-densify; it rewrites file names, headers, namespaces and cross-references, then refreeze).
+Freeze only the IDs you touch: `./check --freeze lean M041 M042` (locked, merges into `specs.json`).
+
+| # | Folder | Libraries | Medium / hard targets (v2 authoring) |
+|---|---|---|---|
+| 1 | `01_logic_and_types` | core | ≥8 / ≥8 |
+| 2 | `02_verified_programs` | core | ≥8 / ≥8 |
+| 3 | `03_semantics` | core | ≥8 / ≥8 |
+| 4 | `04_algebra_and_number_theory` | Mathlib | ≥8 / ≥8 |
+| 5 | `05_analysis_and_sets` | Mathlib | ≥8 / ≥8 |
+| 6 | `06_probability_and_statistics` | Mathlib `ProbabilityTheory`, `MeasureTheory`, `PMF` | ≥12 / ≥12 |
+| 7 | `07_numerical_analysis` | Mathlib analysis, linear algebra, polynomials | ≥12 / ≥12 |
+| 8 | `08_quantum_computing` | Mathlib `Matrix`/`Complex`/unitary group/Kronecker; physlib `QuantumInfo` | ≥12 / ≥12 |
+| 9 | `09_condensed_matter` | physlib `Physlib.CondensedMatter`, `Physlib.StatisticalMechanics`; Mathlib | ≥12 / ≥12 |
+| 10 | `10_physics_with_PhysLean` | physlib `Physlib.*` (mechanics, EM, relativity, QM, space-time, units, particles) | ≥12 / ≥12 |
+
+**Easy tier.** E001–E094 are the syntax and tactics tour (core first, then Mathlib automation and
+notation). E095–E127 are domain warm-ups that introduce each new library's core definitions so medium
+problems don't start cold: E095–E103 probability, E104–E108 numerics, E109–E114 quantum,
+E115–E121 condensed matter, E122–E127 PhysLean.
+
+**physlib.** Pinned in `lean/lakefile.toml` (commit `ba2a946`, the last one on Lean v4.32.0; same
+Mathlib rev). Import the specific modules a problem needs (`import Physlib.CondensedMatter.…`,
+`import QuantumInfo.States.…`), not the whole library, and tag the header `physlib`. physlib contains
+`sorry`s. **Every physlib/QuantumInfo constant that a spec mentions must be sorry-free**: run
+`#print axioms` on it while authoring. A spec built on a sorried definition is meaningless, and a
+solution that uses a sorried lemma fails the checker's axiom gate.
+
+**Domain problems must really be about the domain.** A probability problem states a probability
+fact (Markov/Chebyshev, independence, Bayes, expectation of a concrete distribution); a quantum
+problem states a fact about states, gates, measurement or entanglement; a condensed-matter problem
+is about a lattice model, Hamiltonian, partition function or band structure; a PhysLean problem
+uses physlib's own types. No arithmetic in disguise. The learner studies physics and CS, so cards
+explain **library notation and API**, not physics. Still, define any symbol the statement uses at
+first appearance.
+
+**Tier honesty check.** Before a medium/hard problem is final, try each of `simp`, `simp_all`,
+`aesop`, `grind`, `norm_num`, `decide`, `omega`, `linarith`, `nlinarith`, `positivity`, `fun_prop`,
+`exact?` and `try?` on its main spec, in a probe file that does not contain the solution. If one
+closes it, either strengthen the spec, move the problem to easy, or (only when the point of the problem
+is the manual technique) ban the closing automation on the card (`BANNED: grind, try?`).
+
+**Frozen meaning, not just frozen text (Lean).** `--freeze` also compiles the stub and records, for
+every named declaration in a spec region (theorem, lemma, def, abbrev, instance, inductive, structure,
+class), a hash of its fully explicit (`pp.all`) elaborated type. For defs, abbrevs and instances
+that the stub already gives (sorry-free), it also records a hash of the value. The checker
+recomputes these, so a `variable`/`include`, `open`, instance, notation or macro added outside the
+spec that changes what a frozen statement means is caught (verified against injected-variable and
+instance-override attacks). Consequences for authors: every spec declaration needs a name; and
+helper code in a solution must not change the elaborated spec (it never does in normal code).
+
+**`AXIOMS:` card line (Lean).** `AXIOMS: propext, Quot.sound` narrows the axioms a solution may
+use (default: `propext, Classical.choice, Quot.sound`). Use it for constructive problems, e.g.
+"derive excluded middle from choice" must not use `Classical.choice` itself. Frozen like `BANNED`.
+
+**physlib modules.** `lake build Physlib QuantumInfo` builds only what the two library roots import,
+plus 7 orphan modules built separately. Four orphan modules are broken upstream and unusable:
+`QuantumInfo.Regularized`, `QuantumInfo.ResourceTheory.ResourceTheory`,
+`QuantumInfo.Entropy.Axiomatized.{Defs,Renyi}`. Import only modules that have a `.olean` under
+`lean/.lake/packages/physlib/.lake/build/lib/lean/`.
+
+
