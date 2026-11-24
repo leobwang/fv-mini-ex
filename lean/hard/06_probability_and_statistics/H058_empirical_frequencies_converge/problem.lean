@@ -4,20 +4,11 @@ GOAL
   `Fₙ(t) = #{i < n | X i ≤ t} / n` tends to the CDF `F(t) = P(X 0 ≤ t)` at every `t` where `F` is continuous, all `t`
   at once. Strong law for one event; `ae_all_iff` over rational `t`; then squeeze `Fₙ(q) ≤ Fₙ(t) ≤ Fₙ(q')`, `q < t < q'`.
 
-REFERENCE
-  `X ⟂ᵢ[μ] Y`: independent;  `IdentDistrib X Y μ μ`: same law;  `∀ᵐ ω ∂μ, P ω`: `P` holds a.s.;  `#s` is `s.card`.
-  #check strong_law_ae        -- (X) → Integrable (X 0) μ → Pairwise (X i ⟂ᵢ[μ] X j) → (∀ i, IdentDistrib (X i) (X 0) μ μ) →
-                              --   ∀ᵐ ω ∂μ, Tendsto (fun n => (↑n)⁻¹ • ∑ i ∈ range n, X i ω) atTop (𝓝 (∫ x, X 0 x ∂μ))
-  #check IndepFun.comp        -- X ⟂ᵢ[μ] Y → Measurable φ → Measurable ψ → (φ ∘ X) ⟂ᵢ[μ] (ψ ∘ Y);  same shape: `IdentDistrib.comp`
-  #check Integrable.of_bound  -- AEStronglyMeasurable f μ → ∀ C, (∀ᵐ x ∂μ, ‖f x‖ ≤ C) → Integrable f μ;  `Measurable.indicator`
-  #check integral_indicator_const  -- (e) → MeasurableSet s → ∫ x, s.indicator (fun _ => e) x ∂μ = μ.real s • e
-  #check Finset.sum_boole     -- (∑ x ∈ s, if p x then 1 else 0) = ↑(#{x ∈ s | p x})
-  #check ae_all_iff           -- [Countable ι] → ((∀ᵐ a ∂μ, ∀ i, p a i) ↔ ∀ i, ∀ᵐ a ∂μ, p a i)   (`ℚ` is `Countable`)
-  #check tendsto_order        -- Tendsto f l (𝓝 a) ↔ (∀ a' < a, ∀ᶠ b in l, a' < f b) ∧ ∀ a' > a, ∀ᶠ b in l, f b < a'
-  #check exists_rat_btwn      -- x < y → ∃ q : ℚ, x < ↑q ∧ ↑q < y
-  #check Metric.eventually_nhds_iff  -- (∀ᶠ y in 𝓝 x, p y) ↔ ∃ ε > 0, ∀ y, dist y x < ε → p y;  `ht.eventually (lt_mem_nhds h)`
-  -- `filter_upwards [h] with ω hω`: from `h : ∀ᵐ ω ∂μ, P ω` (or `∀ᶠ`), prove `∀ᵐ ω ∂μ, Q ω` by proving `Q ω` from `hω : P ω`.
-NOTE: `(Finset.range n).filter (fun i => X i ω ≤ t)` prints as `{i ∈ Finset.range n | X i ω ≤ t}`; `ContinuousAt f t` unfolds to `Tendsto f (𝓝 t) (𝓝 (f t))`.
+GUIDE
+  Entries R1–R36: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -25,6 +16,21 @@ namespace H058
 
 open MeasureTheory ProbabilityTheory Filter Topology
 
+/- SKELETON · frequency_tendsto   (milestone 1: the strong law for one event)
+  1. Name the indicator and the new sequence:                                R1
+       f : α → ℝ := A.indicator (fun _ => 1)      Y : ℕ → Ω → ℝ := fun i => f ∘ X i
+  2. hf : Measurable f                                                       R2
+  3. The three hypotheses of `strong_law_ae` for Y:
+       hint : Integrable (Y 0) μ     bound C = 1:                            R3, R4, R5 → R6 → R7 → R8, R9
+       hind : Pairwise fun i j => Y i ⟂ᵢ[μ] Y j                              R10, R11
+       hid  : ∀ i, IdentDistrib (Y i) (Y 0) μ μ                              R12
+  4. hmean : ∫ ω, Y 0 ω ∂μ = μ.real (X 0 ⁻¹' A)
+       restate Y 0 as the indicator of X 0 ⁻¹' A, then integrate:            R13, R14 → R15
+  5. The strong law for Y, pointwise in ω; put hmean into it:                R16, R17, R18
+  6. Match the two sequences term by term:                                   R19
+       hs : ∑ i ∈ Finset.range n, Y i ω = ↑{i ∈ Finset.range n | X i ω ∈ A}.card    R7, R20
+       then rewrite the smul, hs, the division:                              R15, rw [hs], R21
+-/
 -- MILESTONE (optional: change or delete)
 theorem frequency_tendsto {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α] (μ : Measure Ω)
     [IsProbabilityMeasure μ] (X : ℕ → Ω → α) (hmeas : ∀ i, Measurable (X i))
@@ -34,6 +40,11 @@ theorem frequency_tendsto {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace 
       atTop (𝓝 (μ.real (X 0 ⁻¹' A))) := by
   sorry
 
+/- SKELETON · frequency_tendsto_rat   (milestone 2; uses milestone 1)
+  1. Swap "almost surely" and "for all rationals" (ℚ is countable):          R22, then intro q
+  2. Milestone 1 with A = Set.Iic (q : ℝ): `exact` sees that {ω | X 0 ω ≤ ↑q}
+     is X 0 ⁻¹' Set.Iic ↑q by definition; the set is measurable:            R23, R24
+-/
 -- MILESTONE (optional: change or delete)
 theorem frequency_tendsto_rat {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
     [IsProbabilityMeasure μ] (X : ℕ → Ω → ℝ) (hmeas : ∀ i, Measurable (X i))
@@ -43,12 +54,31 @@ theorem frequency_tendsto_rat {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω
         atTop (𝓝 (μ.real {ω | X 0 ω ≤ q})) := by
   sorry
 
+/- SKELETON · frequency_mono   (milestone 3)
+  1. One call goes through the division, the cast, `card` and `filter`; what is left,
+     X i ω ≤ s → X i ω ≤ t, it closes from hst itself:                       R25, R26
+-/
 -- MILESTONE (optional: change or delete)
 theorem frequency_mono {Ω : Type*} (X : ℕ → Ω → ℝ) (ω : Ω) (n : ℕ) {s t : ℝ} (hst : s ≤ t) :
     ((Finset.range n).filter (fun i => X i ω ≤ s)).card / (n : ℝ)
       ≤ ((Finset.range n).filter (fun i => X i ω ≤ t)).card / (n : ℝ) := by
   sorry
 
+/- SKELETON · empirical_cdf
+  Prove the milestones first: frequency_tendsto (used by frequency_tendsto_rat),
+  frequency_tendsto_rat (step 1), frequency_mono (the last line of steps 3 and 4).
+  Write F s for μ.real {ω | X 0 ω ≤ s} and Fₙ(s) for the frequency.
+  1. From the good event of frequency_tendsto_rat, introduce ω hω t ht:      R17
+  2. The limit through the order; split into the two halves:                R27, constructor, intro a ha
+  3. Lower half, ha : a < F t:
+       continuity → a δ-ball around t on which a < F s:                      R29 → R30 → R31
+       a rational q in (t - δ, t):                                           R32 (side goal by R33)
+       hq : a < F ↑q is h applied to a proof of dist ↑q t < δ:              R34, R35, constructor, R33
+       eventually a < Fₙ(q) (from hω q), then filter_upwards, and
+       frequency_mono lifts it to Fₙ(t):                                     R28, R17, R36
+  4. Upper half, ha : a > F t: the mirror image, with gt_mem_nhds and
+     q in (t, t + δ):                                                        R29 → R30 → R31, R32, R34, R35, R28, R17, R36
+-/
 -- BEGIN SPEC
 theorem empirical_cdf {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → ℝ) (hmeas : ∀ i, Measurable (X i))
@@ -62,13 +92,17 @@ theorem empirical_cdf {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsPro
 end H058
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Three steps. (i) One event `A`: apply `strong_law_ae` to `Y i = 1_A ∘ X i` (bounded, pairwise independent, same
-    law). (ii) `ae_all_iff` turns "for each rational `q`, a.s." into "a.s., for all rational `q`" (take `A = Iic q`).
-    (iii) `Fₙ` is monotone in `t`, so at a continuity point `t` squeeze `Fₙ(t)` between `Fₙ(q)` and `Fₙ(q')`.
-H2. `frequency_tendsto`: `f := A.indicator (fun _ => (1 : ℝ))`, `hf : Measurable f := measurable_const.indicator hA`;
-    independence `(hindep hij).comp hf hf`, law `(hident i).comp hf`, `Integrable.of_bound _ 1`; the mean: `f ∘ X 0 =
-    (X 0 ⁻¹' A).indicator (fun _ => 1)` is `rfl`. `frequency_mono`: `gcongr`. Main: prove the two halves of `tendsto_order`.
+H1. Three milestones, then a squeeze. (i) One event `A`: the strong law for the indicators `Yᵢ = 1_A ∘ Xᵢ`
+    (bounded, so integrable; independence and law pass through the measurable `1_A`). (ii) `ae_all_iff` turns
+    "for each rational `q`, a.s." into "a.s., for all rational `q`" (take `A = Set.Iic q`). (iii) `Fₙ` is
+    monotone in `t`, so at a continuity point `t` squeeze `Fₙ(t)` between `Fₙ(q)` and `Fₙ(q')`, `q < t < q'`.
+H2. `frequency_tendsto`: `set f : α → ℝ := A.indicator (fun _ => 1)`, `hf := measurable_const.indicator hA`;
+    `Integrable.of_bound _ 1`, independence `(hindep hij).comp hf hf`, law `(hident i).comp hf`; the mean via
+    `Y 0 = (X 0 ⁻¹' A).indicator (fun _ => 1)` (`rfl`) and `integral_indicator_const`; finish with
+    `filter_upwards [strong_law_ae Y hint hind hid]` and `convert hω using 2 with n`. `frequency_mono`: `gcongr`.
+    Main: `rw [tendsto_order]` and prove the two halves.
 H3. Main: `filter_upwards [frequency_tendsto_rat …] with ω hω t ht`, `rw [tendsto_order]`. Lower half, given `a < F t`:
-    `Metric.eventually_nhds_iff.1 (ht.eventually (lt_mem_nhds ha))` gives `δ`; pick `q : ℚ` in `(t - δ, t)`; then
-    `(tendsto_order.1 (hω q)).1 a _` is eventually `a < Fₙ(q)`, and `frequency_mono` lifts it to `Fₙ(t)`. Upper half: mirror.
+    `Metric.eventually_nhds_iff.1 (ht.eventually (lt_mem_nhds ha))` gives `δ`; pick `q : ℚ` in `(t - δ, t)` with
+    `exists_rat_btwn`; then `(tendsto_order.1 (hω q)).1 a _` is eventually `a < Fₙ(q)`, and
+    `hn.trans_le (frequency_mono X ω n hq2.le)` lifts it to `Fₙ(t)`. Upper half: mirror with `gt_mem_nhds`.
 -/

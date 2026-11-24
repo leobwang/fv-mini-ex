@@ -3,23 +3,22 @@ GOAL
   For a sub-σ-algebra `m` (the information we condition on): averaging `E[X | m]` gives back `E[X]`
   (law of total expectation), and conditioning on `m` leaves an `m`-measurable integrable `X` unchanged.
 
-REFERENCE
-  `μ[X | m]` is `condExp m μ X`, the conditional expectation `E[X | m] : Ω → ℝ` (an m-measurable function).
-  (Not E100's `μ[B | A]` = `cond`: here the thing after `|` is a σ-algebra, not a set.)
-  `{m mΩ : MeasurableSpace Ω}` with `hm : m ≤ mΩ`: `m` is coarser than the ambient σ-algebra `mΩ`.
-  The last-declared σ-algebra (`mΩ`) is the default; `Measurable[m] X` asks for measurability w.r.t. `m`.
-  The goal view prints `Measurable[m] X` as `Measurable X`; hover the hypothesis (or
-  `set_option pp.explicit true`) to see which σ-algebra it uses.
-  #check MeasureTheory.integral_condExp                -- (hm : m ≤ m₀) : ∫ x, μ[f | m] x ∂μ = ∫ x, f x ∂μ
-  #check MeasureTheory.condExp_of_stronglyMeasurable   -- (hm) : StronglyMeasurable[m] f → Integrable f μ → μ[f | m] = f
-  #check Measurable.stronglyMeasurable                 -- Measurable f → StronglyMeasurable f (for f : Ω → ℝ)
-  The instance `SigmaFinite (μ.trim hm)` these lemmas need is found automatically for a probability measure.
-NOTE: if `X` is not integrable, Mathlib sets `μ[X | m] = 0`; the identity still holds (both sides are 0).
+GUIDE
+  Entries R1–R4: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace E103
 
+/- SKELETON · integral_condExp_eq
+  1. The statement is the library lemma R2 at `hm`; its instance argument
+     `[SigmaFinite (μ.trim hm)]` is found automatically:                       R1
+  2. Close the goal with that lemma applied to `hm`: the term itself in place
+     of `sorry`, or `by exact …`:                                              R2
+-/
 -- BEGIN SPEC
 open MeasureTheory ProbabilityTheory
 
@@ -29,6 +28,14 @@ theorem integral_condExp_eq {Ω : Type*} {m mΩ : MeasurableSpace Ω} (hm : m �
 -- END SPEC
   integral_condExp hm
 
+/- SKELETON · condExp_of_measurable
+  1. Replace `sorry` by `by`, then reduce `μ[X | m] = X` to the library
+     lemma's two hypotheses (focus each new goal with `·`):                   R4
+       → `case hf : StronglyMeasurable[m] X`, `case hfi : Integrable X μ`
+  2. `case hf`: convert `hXm : Measurable[m] X` (it prints as `Measurable X`): R3
+  3. `case hfi`: the hypothesis `hX`:                                         exact hX
+  (Or as one term: R4's lemma with `hm`, R3's term and `hX` as arguments.)
+-/
 -- BEGIN SPEC
 theorem condExp_of_measurable {Ω : Type*} {m mΩ : MeasurableSpace Ω} (hm : m ≤ mΩ) (μ : Measure Ω)
     [IsProbabilityMeasure μ] (X : Ω → ℝ) (hXm : Measurable[m] X) (hX : Integrable X μ) :
@@ -39,9 +46,11 @@ theorem condExp_of_measurable {Ω : Type*} {m mΩ : MeasurableSpace Ω} (hm : m 
 end E103
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Both theorems are single library lemmas; the work is passing `hm` and converting hypotheses.
-H2. `condExp_of_stronglyMeasurable` wants `StronglyMeasurable[m] X`; `hXm.stronglyMeasurable` turns
-    `Measurable[m] X` into exactly that (the σ-algebra `m` is carried along).
-H3. Second theorem: `condExp_of_stronglyMeasurable hm hXm.stronglyMeasurable hX`. The first is the
-    first `#check`ed lemma applied to `hm`.
+H1. Each theorem is one Mathlib lemma about `condExp`; the work is passing `hm` and giving each
+    hypothesis in the form the lemma wants.
+H2. First: `integral_condExp` (R2) holds for every `X`, integrable or not. Second:
+    `condExp_of_stronglyMeasurable` (R4) wants `StronglyMeasurable[m] X`, and `hXm.stronglyMeasurable`
+    (R3) turns `hXm : Measurable[m] X` into exactly that (the σ-algebra `m` is carried along).
+H3. Replace `sorry` by `integral_condExp hm` (or `by exact integral_condExp hm`). Second theorem:
+    `condExp_of_stronglyMeasurable hm hXm.stronglyMeasurable hX`.
 -/

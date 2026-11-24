@@ -1,26 +1,17 @@
 /- H073 | Euler's method for y' = y converges to exp | 1-1.5 h | limits, exp bounds, telescoping powers, squeeze_zero', Filter.Eventually, mathlib
 GOAL
-  Euler's method for `y' = y`, `y(0) = 1`, run from `0` to `x` in steps of size `h = x/n`, is `eulerExp x n k` (the
-  value after `k` steps). First show it returns `(1 + x/n)ᵏ`; after `n` steps the exact answer is `eˣ`. Prove the
-  first-order error bound `|eˣ − (1 + x/n)ⁿ| ≤ x² e^{|x|} / n` (for `n ≥ |x|`), then deduce `(1 + x/n)ⁿ → eˣ` from it.
-  Idea: `eˣ = (e^{x/n})ⁿ`, and `aⁿ − bⁿ` is controlled by `a − b` and `max |a| |b|`.
-  (`Tendsto u atTop (𝓝 L)`: `u n → L` as `n → ∞`; `∀ᶠ n in atTop, P n`: `P n` holds for all large `n`.)
-
-REFERENCE
-  #check abs_pow_sub_pow_le          -- (a b : α) (n : ℕ) : |a ^ n - b ^ n| ≤ |a - b| * n * max |a| |b| ^ (n - 1)
-  #check Real.abs_exp_sub_one_sub_id_le  -- |x| ≤ 1 → |exp x - 1 - x| ≤ x ^ 2
-  #check Real.exp_nat_mul            -- exp (n * x) = exp x ^ n
-  #check Real.add_one_le_exp         -- x + 1 ≤ exp x      (`Real.abs_exp : |exp x| = exp x`)
-  #check Real.exp_le_exp             -- exp x ≤ exp y ↔ x ≤ y
-  #check Nat.cast_sub                -- m ≤ n → ((n - m : ℕ) : R) = n - m     (ℕ subtraction is truncated)
-  #check squeeze_zero'               -- (∀ᶠ t in l, 0 ≤ f t) → (∀ᶠ t in l, f t ≤ g t) → Tendsto g l (𝓝 0) → Tendsto f l (𝓝 0)
-  #check tendsto_const_div_atTop_nhds_zero_nat  -- (C : 𝕜) : Tendsto (fun n : ℕ => C / n) atTop (𝓝 0)
-  #check exists_nat_ge               -- (x : R) : ∃ n : ℕ, x ≤ n
-  `filter_upwards [eventually_ge_atTop N] with n hn` proves `∀ᶠ n in atTop, P n` given `hn : N ≤ n`.
-  `tendsto_iff_norm_sub_tendsto_zero` turns `u n → L` into `‖u n − L‖ → 0`  (`Real.norm_eq_abs`, `abs_sub_comm`).
+  Euler's method for `y' = y`, `y(0) = 1`, with `n` steps of size `x/n` is `eulerExp x n k` (value after `k` steps).
+  Show it equals `(1 + x/n)ᵏ`, prove the first-order error bound `|eˣ − (1 + x/n)ⁿ| ≤ x² e^{|x|} / n` for
+  `n ≥ |x|`, and deduce `(1 + x/n)ⁿ → eˣ` from it.
 BANNED: tendsto_one_add_div_pow_exp, tendsto_one_add_div_rpow_exp, tendsto_one_add_div_cpow_exp, tendsto_mul_log_one_add_div_atTop
 BANNED: tendsto_one_add_pow_exp_of_tendsto, tendsto_one_add_rpow_exp_of_tendsto, tendsto_one_add_cpow_exp_of_tendsto
 BANNED: tendsto_nat_mul_log_one_add_of_tendsto, tendsto_mul_log_one_add_of_tendsto, tendsto_pow_exp_of_isLittleO_sub_add_div
+
+GUIDE
+  Entries R1–R43: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -35,6 +26,12 @@ noncomputable def eulerExp (x : ℝ) (n : ℕ) : ℕ → ℝ
   | k + 1 => eulerExp x n k + x / n * eulerExp x n k
 -- END SPEC
 
+/- SKELETON · eulerExp_eq_pow
+  1. Induct on `k`                                                          R1
+  2. zero: both sides compute to `1`                                        rfl
+  3. succ: unfold one Euler step, use the IH, split off one factor          R2, rw [ih], R3
+     what is left is a ring identity                                        ring
+-/
 -- BEGIN SPEC
 theorem eulerExp_eq_pow (x : ℝ) (n k : ℕ) : eulerExp x n k = (1 + x / n) ^ k :=
 -- END SPEC
@@ -43,6 +40,11 @@ theorem eulerExp_eq_pow (x : ℝ) (n k : ℕ) : eulerExp x n k = (1 + x / n) ^ k
     | zero => rfl
     | succ k ih => rw [eulerExp, ih, pow_succ]; ring
 
+/- SKELETON · exp_step_close   (MILESTONE 1: the factor `|a - b|` in `euler_exp_error`)
+  1. `hnpos : (0 : ℝ) < n`                                                  R4
+  2. `hxn : |x / n| ≤ 1`: rewrite it to `|x| ≤ n`, which is `hn`            R5 → R6 → R7
+  3. The Taylor bound at `x / n`, matched to the goal's `- (1 + x / n)`     R8 inside R10 (with R9)
+-/
 -- MILESTONE (optional: change or delete)
 -- one exact step `e^{x/n}` versus one Euler step `1 + x/n`
 theorem exp_step_close (x : ℝ) (n : ℕ) (hn0 : 0 < n) (hn : |x| ≤ n) :
@@ -53,6 +55,15 @@ theorem exp_step_close (x : ℝ) (n : ℕ) (hn0 : 0 < n) (hn : |x| ≤ n) :
     exact hn
   simpa [sub_sub] using Real.abs_exp_sub_one_sub_id_le hxn
 
+/- SKELETON · both_le   (MILESTONE 2: bounds `max |a| |b|` in `euler_exp_error`)
+  1. `hnpos`                                                                R4
+  2. Split the `∧`                                                          constructor
+  3. First half: drop `|·|`, compare exponents, cancel `/ n`                R11 → R12 → R13, then R14
+  4. Second half, a `calc` chain                                            R15
+       `|1 + x / n| ≤ 1 + |x / n|`        triangle inequality              R16 inside R10
+       `_ = |x| / n + 1`                                                    R5, R6, ring
+       `_ ≤ Real.exp (|x| / n)`                                             R17
+-/
 -- MILESTONE (optional: change or delete)
 theorem both_le (x : ℝ) (n : ℕ) (hn0 : 0 < n) :
     |Real.exp (x / n)| ≤ Real.exp (|x| / n) ∧ |1 + x / n| ≤ Real.exp (|x| / n) := by
@@ -64,6 +75,14 @@ theorem both_le (x : ℝ) (n : ℕ) (hn0 : 0 < n) :
       _ = |x| / n + 1 := by rw [abs_div, abs_of_pos hnpos]; ring
       _ ≤ Real.exp (|x| / n) := Real.add_one_le_exp _
 
+/- SKELETON · pow_bound   (MILESTONE 3: the power `^ (n - 1)` in `euler_exp_error`)
+  1. `hnpos`                                                                R4
+  2. Power into the exponent, then compare exponents                        R18 → R12
+  3. `↑(n - 1)` → `↑n - 1` (side goal `1 ≤ n`)                              R19 (R21) → R20
+  4. Facts `h1 : (↑n - 1) * (|x| / n) = |x| - |x| / n`                      R22
+           `h2 : 0 ≤ |x| / n`                                               R23
+  5. Finish                                                                 R24
+-/
 -- MILESTONE (optional: change or delete)
 theorem pow_bound (x : ℝ) (n : ℕ) (hn0 : 0 < n) : Real.exp (|x| / n) ^ (n - 1) ≤ Real.exp |x| := by
   have hnpos : (0 : ℝ) < n := by exact_mod_cast hn0
@@ -74,6 +93,20 @@ theorem pow_bound (x : ℝ) (n : ℕ) (hn0 : 0 < n) : Real.exp (|x| / n) ^ (n - 
   have h2 : 0 ≤ |x| / n := by positivity
   linarith
 
+/- SKELETON · euler_exp_error
+  Prove the three MILESTONES first: steps 4, 5 and 6 use them.
+  1. `hnpos`                                                                R4
+  2. Name the two one-step factors `a := Real.exp (x / n)`, `b := 1 + x / n`  R25
+  3. `hpow : a ^ n = Real.exp x`                                            R18 → R26 → R22
+  4. `ha`, `hb` from `both_le`                                              R27
+  5. `hmax : max |a| |b| ^ (n - 1) ≤ Real.exp |x|`:
+       `max |a| |b| ^ (n - 1) ≤ Real.exp (|x| / n) ^ (n - 1)`               R28 (its hypotheses: R29 with `abs_nonneg`, R30)
+       then chain with `pow_bound`                                          R31
+  6. rw [← hpow], then a `calc` chain                                       R15
+       `|a ^ n - b ^ n| ≤ |a - b| * n * max |a| |b| ^ (n - 1)`              R32
+       `_ ≤ (x / n) ^ 2 * n * Real.exp |x|`                                 R33, then `exp_step_close`
+       `_ = x ^ 2 * Real.exp |x| / n`                                       R22
+-/
 -- BEGIN SPEC
 theorem euler_exp_error (x : ℝ) (n : ℕ) (hn0 : 0 < n) (hn : |x| ≤ n) :
     |Real.exp x - (1 + x / n) ^ n| ≤ x ^ 2 * Real.exp |x| / n :=
@@ -94,6 +127,17 @@ theorem euler_exp_error (x : ℝ) (n : ℕ) (hn0 : 0 < n) (hn : |x| ≤ n) :
       _ ≤ (x / n) ^ 2 * n * Real.exp |x| := by gcongr; exact exp_step_close x n hn0 hn
       _ = x ^ 2 * Real.exp |x| / n := by field_simp
 
+/- SKELETON · euler_converges_exp
+  Uses `euler_exp_error` (step 6).
+  1. `u → L` as `‖u n - L‖ → 0`                                             R34
+  2. Squeeze under `C / n` with `C = x ^ 2 * Real.exp |x|`; give the lower
+     bound and the limit of `C / n` as arguments, keep the middle as `?_`   R35 (R36 + R37, R38)
+  3. An index `N` with `|x| ≤ N`                                            R39
+  4. Fix `n ≥ max N 1`                                                      R40
+  5. `‖·‖` → `|·|`, then swap the difference                                 R41, R42
+  6. `exact euler_exp_error …`: `0 < n` by R21; `|x| ≤ n` from `hN` and
+     `N ≤ n`                                                                R43 → R4 → R31
+-/
 -- BEGIN SPEC
 theorem euler_converges_exp (x : ℝ) :
     Tendsto (fun n : ℕ => (1 + x / n) ^ n) atTop (𝓝 (Real.exp x)) :=
@@ -110,15 +154,19 @@ theorem euler_converges_exp (x : ℝ) :
 end H073
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Set `a = e^{x/n}`, `b = 1 + x/n`. Then `aⁿ = eˣ`, `|a − b| ≤ (x/n)²` (needs `|x/n| ≤ 1`, i.e. `n ≥ |x|`), and both
-    `|a|, |b| ≤ e^{|x|/n}`, so `max |a| |b| ^ (n−1) ≤ e^{(n−1)|x|/n} ≤ e^{|x|}`. Plug into `abs_pow_sub_pow_le`.
-H2. `eulerExp_eq_pow`: induct on `k`; `rw [eulerExp]` unfolds one Euler step, then use the IH and `pow_succ`.
-    `exp_step_close`: `simpa [sub_sub] using Real.abs_exp_sub_one_sub_id_le hxn`. `both_le`: `Real.abs_exp` then
-    `exp_le_exp`; for `b`, `|1 + x/n| ≤ 1 + |x/n| = |x|/n + 1 ≤ e^{|x|/n}`. `pow_bound`: `← Real.exp_nat_mul`, `exp_le_exp`,
-    and `Nat.cast_sub` to show `(n − 1)·(|x|/n) = |x| − |x|/n ≤ |x|`. Limit: squeeze `|(1 + x/n)ⁿ − eˣ|` under `C / n`.
+H1. Set `a = e^{x/n}` (one exact step) and `b = 1 + x/n` (one Euler step). Then `aⁿ = eˣ`, and
+    `abs_pow_sub_pow_le` (R32) bounds `|aⁿ − bⁿ|` by `|a − b| · n · max |a| |b| ^ (n−1)`. The three
+    milestones bound the three factors: `(x/n)²` (needs `|x/n| ≤ 1`, i.e. `n ≥ |x|`), `e^{|x|/n}`, `e^{|x|}`.
+H2. `eulerExp_eq_pow`: induct on `k` and unfold one Euler step with `rw [eulerExp]`. `exp_step_close`: the Taylor
+    bound R8 at `x / n`, with `sub_sub` to match the goal. `both_le`: `Real.abs_exp`, `Real.exp_le_exp`; for
+    `b`, the chain `|1 + x/n| ≤ 1 + |x/n| = |x|/n + 1 ≤ e^{|x|/n}`. `pow_bound`: pull the power into the
+    exponent, then `(n − 1)·(|x|/n) = |x| − |x|/n ≤ |x|` (watch the ℕ subtraction). The error bound: a `calc`
+    from R32 with `gcongr`. The limit: squeeze `|(1 + x/n)ⁿ − eˣ|` under `C / n` for `n ≥ max N 1`.
 H3. `induction k with | zero => rfl | succ k ih => rw [eulerExp, ih, pow_succ]; ring`.
+    `simpa [sub_sub] using Real.abs_exp_sub_one_sub_id_le hxn`.  `rw [Nat.cast_sub (by omega), Nat.cast_one]`.
     `calc |a ^ n - b ^ n| ≤ |a - b| * n * max |a| |b| ^ (n - 1) := abs_pow_sub_pow_le a b n
-      _ ≤ (x / n) ^ 2 * n * Real.exp |x| := by gcongr ... _ = x ^ 2 * Real.exp |x| / n := by field_simp`.
+      _ ≤ (x / n) ^ 2 * n * Real.exp |x| := by gcongr; exact exp_step_close x n hn0 hn
+      _ = x ^ 2 * Real.exp |x| / n := by field_simp`   (with `hmax` already in the context).
     Limit: `refine squeeze_zero' (Eventually.of_forall fun n => norm_nonneg _) ?_ (tendsto_const_div_atTop_nhds_zero_nat _)`,
     `obtain ⟨N, hN⟩ := exists_nat_ge |x|`, `filter_upwards [eventually_ge_atTop (max N 1)] with n hn`.
 -/

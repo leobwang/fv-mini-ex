@@ -5,15 +5,13 @@ GOAL
   peephole optimiser `opt` preserves meaning and never lengthens code, and that `compile e`, run on
   any stack `s`, pushes exactly `e.eval` (`e.eval` = the value of expression `e`).
 
-REFERENCE
-  example : Code 0 1 := .cons (.push 2) (.cons (.push 3) (.cons .add .nil))  -- a well-typed program
-  example : (Code.cons (.push 2) (.cons (.push 3) (.cons .add .nil))).run .nil = .cons 5 .nil := rfl
-  example : (compile (n := 0) (.add (.num 2) (.num 3))).run .nil = .cons 5 .nil := rfl
-    -- `(n := 0)` fixes the implicit start depth; `compile e : Code n (n + 1)` for every `n`
-  -- `induction e with | num k => _ | add a b iha ihb => _ | mul a b iha ihb => _`
-  -- `simp [Code.run, Instr.run, h]`: unfold those definitions and rewrite with lemma/hypothesis `h`
 BANNED: import, exact?, apply?, try?, grind, solve_by_elim
-NOTE: Do not add imports or leave search tactics (`exact?`, `apply?`, `try?`) in the file.
+
+GUIDE
+  Entries R1–R9: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M012
@@ -77,6 +75,13 @@ def compile {n : Nat} : Expr → Code n (n + 1)
   | .mul a b => (compile a).append ((compile b).append (.cons .mul .nil))
 -- END SPEC
 
+/- SKELETON · run_append
+  1. Induction on the code `c`. `d` and `s` mention its indices, so Lean generalizes them:  R1
+       ih : ∀ (d : Code k✝ k) (s : Vec Nat m✝), (c.append d).run s = d.run (c.run s)
+  2. nil: both sides compute to `d.run s`:                                    rfl (R2)
+  3. cons: unfold `Code.append`, then `Code.run`, on the constructor;
+     then the IH, instantiated at the stack `i.run s`:                        R2 → R3
+-/
 -- BEGIN SPEC
 theorem run_append {n m k : Nat} (c : Code n m) (d : Code m k) (s : Vec Nat n) :
     (c.append d).run s = d.run (c.run s) :=
@@ -86,18 +91,40 @@ theorem run_append {n m k : Nat} (c : Code n m) (d : Code m k) (s : Vec Nat n) :
     | nil => rfl
     | cons i c ih => simp [Code.append, Code.run, ih]
 
+/- SKELETON · opt_correct
+  1. One goal per arm of `opt` (four), not per constructor of `Code`:         R5
+  2. Every arm (`<;>`): unfold `Code.run` on the constructors and `Instr.run`
+     on the pushed stack (that is what lets `add`/`mul` compute), and let the
+     unnamed IH `ih1✝` finish:                                                R2, R4, R6
+-/
 -- BEGIN SPEC
 theorem opt_correct {n m : Nat} (c : Code n m) (s : Vec Nat n) : (opt c).run s = c.run s :=
 -- END SPEC
   by
     fun_induction opt c <;> simp_all [Code.run, Instr.run]
 
+/- SKELETON · opt_len
+  1. One goal per arm of `opt`:                                               R5
+  2. Every arm (`<;>`): unfold `Code.len` and use the unnamed IH:             R2, R6
+  3. The two folding arms are left as `(opt c✝).len ≤ c✝.len + 2`:            R7
+-/
 -- BEGIN SPEC
 theorem opt_len {n m : Nat} (c : Code n m) : (opt c).len ≤ c.len :=
 -- END SPEC
   by
     fun_induction opt c <;> simp_all [Code.len] <;> omega
 
+/- SKELETON · compile_correct
+  1. Induction on `e`, generalizing the depth `n` (the IH for `b` is needed
+     at depth `n + 1`):                                                       R8
+       iha : ∀ {n : Nat} (s : Vec Nat n), (compile a).run s = Vec.cons a.eval s
+  2. num: both sides compute:                                                 rfl (R2)
+  3. add (mul is the same):
+       unfold `compile`                                                       R2
+       split the code with `run_append` (Part 1), use `iha` at depth `n`;
+       split again, use `ihb` at depth `n + 1`                                rw [run_append], R9
+       compute `Code.run`, `Instr.run` on the pushed stack, then `Expr.eval`  R2, R4
+-/
 -- BEGIN SPEC
 theorem compile_correct {n : Nat} (e : Expr) (s : Vec Nat n) :
     (compile e).run s = .cons e.eval s :=
@@ -113,14 +140,14 @@ theorem compile_correct {n : Nat} (e : Expr) (s : Vec Nat n) :
 end M012
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `run_append` is structural induction on `c`. The two `opt` lemmas follow the shape of `opt`, not of
-    `Code`. `compile_correct` is induction on `e`; `run_append` splits the code of `add a b` into its parts.
-H2. Plain `induction c` on `opt_correct` stalls: in the `cons` case `opt` does not unfold until you split
-    on the next two instructions by hand. `fun_induction opt c` (E084) gives one goal per arm of `opt`,
-    overlapping arms included. In `compile_correct`, `compile b` starts at depth `n + 1`, so the IH for
-    `b` is needed at a different depth than the goal's `n`.
-H3. `opt_correct`: `fun_induction opt c`, then in each arm unfold `Code.run`, `Instr.run` and use the IH
-    (`opt_len`: the same with `Code.len`, and `omega` for the leftover arithmetic). `compile_correct`:
-    `induction e generalizing n`; in `add`, unfold `compile`, rewrite with `run_append` and both IHs, then
-    unfold `Code.run`, `Instr.run`, `Expr.eval`.
+H1. `run_append` is structural induction on `c` (R1). The two `opt` lemmas follow the arms of `opt`, not
+    the constructors of `Code`. `compile_correct` is induction on `e`; `run_append` splits the code of
+    `add a b` into its parts.
+H2. Plain `induction c` on `opt_correct` stalls: `opt (.cons i c)` does not unfold until you split the next
+    two instructions by hand. `fun_induction opt c` (R5) gives one goal per arm of `opt`; its IH is
+    unnamed, so finish each arm with `simp_all` (R6), and `omega` (R7) for the lengths. In
+    `compile_correct`, `compile b` starts at depth `n + 1`: use `induction e generalizing n` (R8).
+H3. `run_append`, `cons` case: `simp [Code.append, Code.run, ih]`. `opt_correct`: `fun_induction opt c`,
+    then in every arm `simp_all` with `Code.run` and `Instr.run` (`opt_len`: `Code.len`, then `omega`).
+    `compile_correct`, `add` case: `simp [compile, run_append, iha, ihb, Code.run, Instr.run, Expr.eval]`.
 -/

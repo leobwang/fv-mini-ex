@@ -4,15 +4,11 @@ GOAL
   `relabel`: it numbers the leaves `s, s+1, …` left to right, so the final counter is `s + size` and
   the labels, read in order, are `List.range' s size` (the list `[s, s+1, …, s+size-1]`).
 
-REFERENCE
-  -- LawfulMonad.mk' (m) (id_map) (pure_bind) (bind_assoc) : LawfulMonad m   (other laws: automatic)
-  #check @LawfulMonad.mk'   -- the three laws are the explicit arguments after `m`
-  example : List.range' 3 4 = [3, 4, 5, 6] := rfl
-  #check @List.range'_append_1  -- range' s m ++ range' (s + m) n = range' s (m + n)   (step 1)
-  -- `simp only [relabel, bind, pure]` unfolds a `do` block over this hand-made instance;
-  -- after that, `(relabel t s).2` is a plain pair projection you can rewrite.
-  -- `induction t generalizing s with | leaf => _ | node l r ihl ihr => _`
-NOTE: Give `LawfulMonad.mk'` its three laws as arguments; `apply LawfulMonad.mk'` turns the automatic ones into goals.
+GUIDE
+  Entries R1–R11: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M014
@@ -29,12 +25,32 @@ def St.get {σ : Type} : St σ σ := fun s => (s, s)
 def St.set {σ : Type} (s : σ) : St σ Unit := fun _ => ((), s)
 -- END SPEC
 
+/- SKELETON · stLawful
+  1. The body is a term: `LawfulMonad.mk' (St σ)` applied to the three laws
+     id_map, pure_bind, bind_assoc (the other five fields fill themselves):     R1
+  2. Each law holds by computation: one `fun … => rfl` per law, with one `_`
+     per explicit binder of that law (1, 2, 3):                                 R4 (= R2 then R3)
+-/
 -- BEGIN SPEC
 instance stLawful {σ : Type} : LawfulMonad (St σ) :=
 -- END SPEC
   -- WHY: for a function-type monad the laws are computation, so each one is `rfl`.
   LawfulMonad.mk' (St σ) (fun _ => rfl) (fun _ _ => rfl) (fun _ _ _ => rfl)
 
+/- SKELETON · relabel_spec
+  1. Induct on `t`, generalizing the start counter `s`:                          R5
+  2. `leaf`: one `simp [...]` naming everything the leaf computation passes
+     through (relabel, fresh, bind, pure, St.get, St.set, LTree.labels,
+     Tree.size); it finishes with `List.range' s 1 = [s]` by itself:            R7, R11
+  3. `node`: instantiate both hypotheses, the right one at the counter the
+     left subtree left behind:
+       hl1, hl2 from `ihl s`;  hr1, hr2 from `ihr (relabel l s).2`              R6
+  4. Unfold the node's `do` block (in the hypotheses too):                       R7
+  5. Split the `∧`:                                                              refine ⟨?_, ?_⟩
+  6. Counter: rw [hr1, hl1], unfold `Tree.size`, then the arithmetic:            R8, R9
+  7. Labels: unfold `LTree.labels`, rw [hl2, hr2, hl1], unfold `Tree.size`,
+     join the two ranges:                                                        R8, R8, R10
+-/
 -- BEGIN SPEC
 inductive Tree where
   | leaf
@@ -85,12 +101,16 @@ theorem relabel_spec (t : Tree) (s : Nat) :
 end M014
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Unfold the instance by hand on each law: both sides are functions `σ → _ × σ` that compute the same pair.
-    For `relabel_spec`, the right subtree starts from the counter the left subtree left behind.
-H2. The laws hold definitionally, so each is `rfl` (as a `fun`). For `relabel_spec`, induct on `t`
-    generalizing `s`, and in the `node` case use `ihl s` and `ihr (relabel l s).2`.
-H3. Each law is `rfl` once wrapped in as many `fun _ =>` binders as it has arguments; pass the three to
-    `LawfulMonad.mk' (St σ)`. Node case: `simp only [relabel, bind, pure] at *`, then `omega` for the
-    counter; for the labels rewrite with both IHs and `ihl`'s counter equation, unfold `Tree.size`, and
-    finish with `simp` (it knows `List.range'_append_1`).
+H1. `St σ α` is a function type and `pure`, `bind` are plain `fun`s, so every monad law is true by
+    computation (`rfl`, R3). In `relabel_spec` the counter moves: the right subtree starts where the left
+    one stopped, so the induction hypotheses must hold for every start counter.
+H2. Instance: `LawfulMonad.mk' (St σ)` with the three laws as arguments, each a `fun … => rfl` (R1, R4);
+    not `apply`, which leaves the five automatic fields as goals. Theorem: `induction t generalizing s`;
+    leaf by one `simp` with all the names; node: instantiate `ihl s` and `ihr (relabel l s).2`, unfold the
+    `do` block with `simp only [relabel, bind, pure] at *`, split, counter by `omega`, labels by
+    `List.range'_append_1`.
+H3. Laws: `fun _ => rfl`, `fun _ _ => rfl`, `fun _ _ _ => rfl`. Node case:
+    `obtain ⟨hl1, hl2⟩ := ihl s` and `obtain ⟨hr1, hr2⟩ := ihr (relabel l s).2`. Counter: rewrite with
+    `hr1` before `hl1`, unfold `Tree.size`, `omega`. Labels: unfold `LTree.labels`, rewrite with `hl2`, `hr2`,
+    then `hl1` (so the second range starts at `s + l.size`), unfold `Tree.size`, `List.range'_append_1`.
 -/

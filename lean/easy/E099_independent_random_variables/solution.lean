@@ -3,18 +3,27 @@ GOAL
   For independent random variables `X` and `Y`, `E[X Y] = E[X] E[Y]`; with `E[X] = 2` and `E[Y] = 3`
   conclude `E[X Y] = 6`.
 
-REFERENCE
-  `X ⟂ᵢ[μ] Y` is notation for `IndepFun X Y μ`: `X` and `Y` are independent under `μ`.
-  `X * Y` is the pointwise product `fun ω => X ω * Y ω`, so `μ[X * Y]` is `E[X Y]`.
-  #check IndepFun.integral_mul_eq_mul_integral
-    -- X ⟂ᵢ[μ] Y → AEStronglyMeasurable X μ → AEStronglyMeasurable Y μ → ∫ x, (X * Y) x ∂μ = μ[X] * μ[Y]
-  #check Measurable.aestronglyMeasurable    -- Measurable f → AEStronglyMeasurable f μ
-  Dot notation: `hXY.integral_mul_eq_mul_integral h1 h2` for `hXY : X ⟂ᵢ[μ] Y`.
+GUIDE
+  Entries R1–R4: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace E099
 
+/- SKELETON · indep_mul
+  1. Turn `hX`, `hY` into the side conditions the product rule wants:      R1
+       hX.aestronglyMeasurable : AEStronglyMeasurable X μ   (same for Y)
+     Write these inline as arguments in step 2 (`μ` is then read off the goal). A separate
+     `have` needs the type written out, `have hX' : AEStronglyMeasurable X μ := …`.
+  2. Factor the mean of the product, `μ[X * Y]` → `μ[X] * μ[Y]`,
+     passing the two proofs from step 1:                                   R2
+  3. Substitute the given means, first `h1`, then `h2`:                    R3, R3
+       goal: 2 * 3 = 6
+  4. Finish the numbers:                                                   R4
+-/
 -- BEGIN SPEC
 open MeasureTheory ProbabilityTheory
 
@@ -29,7 +38,9 @@ theorem indep_mul {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabi
 end E099
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Factor the expectation of the product, then substitute the two given means.
-H2. The factoring lemma wants `AEStronglyMeasurable`; you have `Measurable`, which converts by dot notation.
+H1. Factor the expectation of the product (R2), then substitute the two given means (R3).
+H2. The factoring lemma is `hXY.integral_mul_eq_mul_integral`; its two measurability arguments must be
+    `AEStronglyMeasurable`. You have `Measurable`, which converts by dot notation (R1). One `rw` chain,
+    then `norm_num` (R4).
 H3. `rw [hXY.integral_mul_eq_mul_integral hX.aestronglyMeasurable hY.aestronglyMeasurable, h1, h2]; norm_num`.
 -/

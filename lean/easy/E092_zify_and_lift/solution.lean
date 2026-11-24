@@ -3,23 +3,24 @@ GOAL
   `zify_ex`: prove an identity with truncated `ℕ` subtraction by moving it to `ℤ`.
   `lift_dvd`: turn a nonnegative integer into a natural number, to use an `ℕ`-only lemma.
 
-REFERENCE
-  example (a b : ℕ) (h : b ≤ a) : a - b + b = a := by zify [h]; ring  -- goal moves to ℤ
-  -- `↑a` is the cast of `a : ℕ` into ℤ; `zify [h]` turns `↑(a - b)` into `↑a - ↑b`
-  #check Nat.one_le_pow   -- (n m : ℕ) : 0 < m → 1 ≤ m ^ n
-  example (x : ℤ) (hx : 0 ≤ x) (h : x < 2) : x ≤ 1 := by
-    lift x to ℕ using hx; omega    -- now x : ℕ, and h : (x : ℤ) < 2
-  example (x : ℕ) (h : (x : ℤ) ∣ 7) : x ∣ 7 := by norm_cast at h   -- strip casts in h
-  #check Nat.dvd_prime    -- p.Prime → (m ∣ p ↔ m = 1 ∨ m = p)
-  example : Nat.Prime 7 := by norm_num   -- closes primality side goals for literals
-  example (A B : Prop) (h : A ∨ B) (hne : ¬A) : B := h.resolve_left hne
 BANNED: grind, nlinarith, linarith, polyrith, interval_cases, Nat.sub_one_mul, exact?, try?
-NOTE: in ℕ, `a - b = 0` when `b > a`; `zify [h₁, h₂]` needs every `b ≤ a` that makes a `-` exact.
+
+GUIDE
+  Entries R1–R8: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace E092
 
+/- SKELETON · zify_ex
+  1. Two truncated subtractions, `n - 1` and `n ^ 2 - 1`; `h` covers the first.
+     Prove the fact for the second, `h2 : 1 ≤ n ^ 2`, in a `have`:                R1
+  2. Move the goal to ℤ, giving `zify` both facts `h` and `h2`:                 R2
+  3. What is left is ring algebra in the unknown `↑n`:                          R3
+-/
 -- BEGIN SPEC
 theorem zify_ex (n : ℕ) (h : 1 ≤ n) : (n - 1) * (n + 1) = n ^ 2 - 1 :=
 -- END SPEC
@@ -28,6 +29,12 @@ theorem zify_ex (n : ℕ) (h : 1 ≤ n) : (n - 1) * (n + 1) = n ^ 2 - 1 :=
     zify [h, h2]
     ring
 
+/- SKELETON · lift_dvd
+  1. Replace `x : ℤ` by a natural number, using `hx`:                            R4
+  2. Strip the casts from `h`, `h1` and the goal:                                R5
+  3. Turn `h : x ∣ 7` into `x = 1 ∨ x = 7`; the primality side goal by R7:       R6, R7
+  4. Rule out `x = 1` with `h1` and close the goal:                              R8
+-/
 -- BEGIN SPEC
 theorem lift_dvd (x : ℤ) (hx : 0 ≤ x) (h : x ∣ 7) (h1 : x ≠ 1) : x = 7 :=
 -- END SPEC
@@ -39,10 +46,12 @@ theorem lift_dvd (x : ℤ) (hx : 0 ≤ x) (h : x ∣ 7) (h1 : x ≠ 1) : x = 7 :
 end E092
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `zify_ex` has two subtractions, `n - 1` and `n ^ 2 - 1`; each needs its `1 ≤ _` fact for
-    `zify`. In `lift_dvd`, `Nat.dvd_prime` speaks about `ℕ`, while `x : ℤ`.
-H2. Prove `1 ≤ n ^ 2` first, then `zify` with both facts and finish with `ring`. For `lift_dvd`,
-    `lift x to ℕ using hx`, then `norm_cast at h h1 ⊢` turns everything into `ℕ` statements.
+H1. `zify_ex` has two subtractions, `n - 1` and `n ^ 2 - 1`; `zify` removes the cast of `a - b` only
+    when it is given `b ≤ a`. In `lift_dvd`, `Nat.dvd_prime` speaks about `ℕ`, while `x : ℤ`; `hx`
+    says `x` is really a natural number.
+H2. `zify_ex`: prove `1 ≤ n ^ 2` first (`Nat.one_le_pow`), then `zify` with both facts and finish with
+    `ring`. `lift_dvd`: `lift x to ℕ using hx`, then `norm_cast at h h1 ⊢` turns everything into `ℕ`
+    statements; `Nat.dvd_prime` gives `x = 1 ∨ x = 7`, and `h1` excludes the left case.
 H3. `have h2 : 1 ≤ n ^ 2 := Nat.one_le_pow _ _ h; zify [h, h2]; ring`;
     `exact ((Nat.dvd_prime (by norm_num)).mp h).resolve_left h1`.
 -/

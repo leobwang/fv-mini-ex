@@ -2,20 +2,13 @@
 GOAL
   For a smooth electromagnetic potential `V` (scalar potential `φ`, vector potential `A`), the fields
   `E = -∇φ - ∂ₜA` and `B = ∇ × A` satisfy Faraday's law `∇ × E = -∂ₜ B` at every time `t` and point `x`.
-
-REFERENCE
-  `V : ElectromagneticPotential` (a 4-potential on spacetime); `c : SpeedOfLight` (a positive real constant).
-  `V.electricField c t : Space → EuclideanSpace ℝ (Fin 3)`; `∇ ⨯ F` is `curl F`; `∂ₜ g t` = d/dt of `g : Time → _`.
-  #check ThreeDimension.electricField_eq_3D -- V.electricField c = fun t x => -∇ (V.scalarPotential c t) x - ∂ₜ (fun t => V.vectorPotential c t x) t
-  #check ThreeDimension.magneticField_eq_3D -- V.magneticField c = fun t x => curl (V.vectorPotential c t) x
-  #check Space.time_deriv_curl_commute -- ContDiff ℝ 2 ↿fₜ → ∂ₜ (fun t => curl (fₜ t) x) t = curl (fun x => ∂ₜ (fun t => fₜ t x) t) x
-  #check Space.curl_of_grad_eq_zero    -- ContDiff ℝ 2 f → curl (∇ f) = 0
-  #check Space.fun_curl_neg   -- Differentiable ℝ f → curl (fun x => -f x) = fun x => -curl f x
-  #check Space.fun_curl_sub   -- Differentiable ℝ f1 → Differentiable ℝ f2 → curl (fun x => f1 x - f2 x) = fun x => curl f1 x - curl f2 x
-  `↿fₜ` is `fₜ` uncurried: `fun (t, x) => fₜ t x`. `ContDiff ℝ ∞ V` says `V` is smooth.
-  `rw [h]` with `h : P → a = b` rewrites and adds `P` as a goal after the main one; `fun_prop` proves such
-  `Differentiable`/`ContDiff` goals (physlib registers the smoothness of `φ`, `A` given `hV`).
 BANNED: faradayLaw
+
+GUIDE
+  Entries R1–R12: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.Electromagnetism.ThreeDimension.Basic
 
@@ -23,6 +16,20 @@ open Electromagnetism ElectromagneticPotential Space Time ContDiff
 
 namespace M186
 
+/- SKELETON · faraday
+  1. Fields → potentials: E on the left, B on the right.                     R1, R2
+  2. Left side, in this order (each `rw` puts its smoothness side goals
+     right after the main goal):
+       curl (-∇φ - ∂ₜA) → curl (-∇φ) - curl (∂ₜA)                           R3
+       curl (-∇φ)       → -curl (∇φ)                                         R4
+       curl (∇φ)        → 0                                                  R5
+  3. Right side: ∂ₜ (curl A) → curl (∂ₜA)                                     R6
+     Steps 1–3 fit in one `rw [...]` with the six lemmas in this order.
+  4. Main goal is now `-0 - X = -X` with X = curl (∂ₜA) at x (inside
+     beta-redexes): focus it with `·` and close it.                          R7
+  5. Five side goals remain, all `Differentiable`/`ContDiff` facts about φ, ∇φ,
+     ∂ₜA, ↿A; close them all with `all_goals`. It finds R9–R12 and uses hV.  R8
+-/
 -- BEGIN SPEC
 theorem faraday (c : SpeedOfLight) (V : ElectromagneticPotential) (hV : ContDiff ℝ ∞ V)
     (t : Time) (x : Space) :
@@ -33,11 +40,13 @@ theorem faraday (c : SpeedOfLight) (V : ElectromagneticPotential) (hV : ContDiff
 end M186
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Write both fields in terms of the potentials first. Then two facts do all the physics: the curl of a
-    gradient vanishes (M182), and the time derivative commutes with the curl.
-H2. Rewrite in this order: `E` and `B` into potentials; split `curl (-∇φ - ∂ₜA)` with `fun_curl_sub` and
-    `fun_curl_neg`; kill `curl (∇ φ)`; move `∂ₜ` inside the curl on the right. What remains is
-    `-0 - X = -X`, plus smoothness side goals.
+H1. Write both fields in terms of the potentials first (R1, R2). Then two facts do all the physics: the
+    curl of a gradient vanishes (R5, M182), and the time derivative commutes with the curl (R6). The rest is
+    linearity of the curl (R3, R4) and smoothness side goals.
+H2. One `rw [...]` chain: fields into potentials; split `curl (-∇φ - ∂ₜA)` with `fun_curl_sub`, then
+    `fun_curl_neg`; kill `curl (∇ φ)`; move `∂ₜ` inside the curl on the right. The main goal comes first and
+    reads `-0 - X = -X`; after it come five smoothness side goals.
 H3. The rewrite order: `electricField_eq_3D, magneticField_eq_3D, fun_curl_sub, fun_curl_neg,
-    curl_of_grad_eq_zero, time_deriv_curl_commute`. The main goal left is algebra; every side goal is smoothness.
+    curl_of_grad_eq_zero, time_deriv_curl_commute`. The main goal left is algebra (R7); every side goal
+    is smoothness (R8), so close the main goal first.
 -/

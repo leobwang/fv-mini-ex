@@ -4,18 +4,13 @@ GOAL
   sound: if every variable's abstract sign describes its value, the abstract result describes
   the concrete result. `Sign.gamma a v` ("γ", concretisation) means "sign `a` describes `v`".
 
-REFERENCE
-  example (x y : Int) (hx : 0 < x) (hy : 0 < y) : 0 < x * y := Int.mul_pos hx hy
-  #check @Int.mul_neg_of_pos_of_neg   -- 0 < a → b < 0 → a * b < 0
-  #check @Int.mul_neg_of_neg_of_pos   -- a < 0 → 0 < b → a * b < 0
-  #check @Int.mul_pos_of_neg_of_neg   -- a < 0 → b < 0 → 0 < a * b
-  example (a : Sign) : a.plus .zero = a := by cases a <;> rfl   -- `cases a`: one goal per sign
-  -- `t1 <;> t2` runs t2 on every goal t1 makes.
-  -- `omega` treats `x * y` as an opaque atom: it cannot find the sign of a product.
-  -- `unfold Sign.ofInt; split` cases on the `if` in the goal.
 BANNED: try?, grind
-NOTE: `grind` is banned because `try?` prints `grind` one-liners for `plus_sound` and, given the
-  two operator lemmas, for `aevalSign_sound`. Do not leave `exact?`/`apply?` in the file.
+
+GUIDE
+  Entries R1–R13: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M046
@@ -75,6 +70,14 @@ def aevalSign (as : Nat → Sign) : AExp → Sign
   | .times a b => (aevalSign as a).times (aevalSign as b)
 -- END SPEC
 
+/- SKELETON · plus_sound
+  1. One goal per pair of signs, 4 × 4 = 16 goals:                           R1, R2
+  2. In every goal evaluate `Sign.plus` on the two constructors and turn
+     each `gamma` into an (in)equality, in `ha`, `hb` and the goal at once.
+     14 goals close here (`top` gives `True`, `zero` gives `x = 0`):          R3, R4
+  3. Two goals are left, `neg.neg` and `pos.pos`; both are linear:           R5
+     (chain steps 1–3 with `<;>` so each runs on every goal)
+-/
 -- BEGIN SPEC
 theorem plus_sound {a b : Sign} {x y : Int} (ha : a.gamma x) (hb : b.gamma y) :
     (a.plus b).gamma (x + y) :=
@@ -82,6 +85,13 @@ theorem plus_sound {a b : Sign} {x y : Int} (ha : a.gamma x) (hb : b.gamma y) :
   by
     cases a <;> cases b <;> simp_all [Sign.plus, Sign.gamma] <;> omega
 
+/- SKELETON · times_sound
+  1. One goal per pair of signs:                                             R2
+  2. Evaluate `Sign.times` and `gamma` everywhere; 12 goals close:           R3, R4
+  3. Four goals about the sign of `x * y` are left, in the order
+     `neg.neg`, `neg.pos`, `pos.neg`, `pos.pos`. `omega` cannot see inside
+     `x * y`; close each (one `·` bullet per goal) with its lemma on `ha hb`: R7, R9, R8, R6
+-/
 -- BEGIN SPEC
 theorem times_sound {a b : Sign} {x y : Int} (ha : a.gamma x) (hb : b.gamma y) :
     (a.times b).gamma (x * y) :=
@@ -100,6 +110,16 @@ theorem ofInt_sound (n : Int) : (Sign.ofInt n).gamma n := by
   · simp_all [Sign.gamma]
   · split <;> simp_all [Sign.gamma] <;> omega
 
+/- SKELETON · aevalSign_sound
+  0. MILESTONE first: your own lemma, declared above this theorem and outside the spec regions,
+       ofInt_sound (n : Int) : (Sign.ofInt n).gamma n            (used in the `num` case)
+     Open `Sign.ofInt`, split the outer `if`; the `isTrue` branch by R4; in `isFalse`
+     split the inner `if` and finish each branch with R4, then R5:      R10 → R11 → R4, R11 → R4 → R5
+  1. Induction on `e`, naming the constructor arguments and the IHs of `plus`, `times`:  R12
+  2. Each of the four alternatives is one `exact`, up to unfolding:                      R13
+       num → the milestone,  var → the hypothesis `h`,
+       plus / times → the operator lemma of Part 1 / 2 applied to the two IHs
+-/
 -- BEGIN SPEC
 theorem aevalSign_sound (as : Nat → Sign) (s : State) (h : ∀ x, (as x).gamma (s x)) (e : AExp) :
     (aevalSign as e).gamma (aeval s e) :=
@@ -114,7 +134,16 @@ theorem aevalSign_sound (as : Nat → Sign) (s : State) (h : ∀ x, (as x).gamma
 end M046
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. The two operator lemmas are finite case analyses on the two signs (16 cases each); the main theorem is an induction on `e` that uses them, plus a small lemma for numerals.
-H2. `plus_sound`: after the case split every goal is linear, so `omega` finishes. `times_sound`: the same split leaves four goals about the sign of `x * y`, which need the `Int.mul_*` lemmas. Numerals: prove `(Sign.ofInt n).gamma n` by splitting the `if`s.
-H3. `cases a <;> cases b <;> simp_all [Sign.times, Sign.gamma]`, then close the four leftovers with `Int.mul_pos`, `Int.mul_pos_of_neg_of_neg`, `Int.mul_neg_of_pos_of_neg`, `Int.mul_neg_of_neg_of_pos`; main: `induction e with | num n => exact ofInt_sound n | var x => exact h x | plus a b iha ihb => exact plus_sound iha ihb | ...`.
+H1. The two operator lemmas are finite tables: split both signs (16 cases each) and let `simp_all`
+    unfold the table and `gamma` (R1–R4). The main theorem is an induction on `e` (R12) that uses
+    them, plus a milestone lemma for numerals.
+H2. `plus_sound`: after `cases a <;> cases b <;> simp_all [Sign.plus, Sign.gamma]` every leftover is
+    linear, so `<;> omega` (R5). `times_sound`: the same split leaves four goals about the sign of
+    `x * y`, which `omega` cannot see; use the `Int.mul_*` lemmas (R6–R9). Milestone
+    `ofInt_sound (n : Int) : (Sign.ofInt n).gamma n`: `unfold Sign.ofInt`, `split` (twice), then
+    `simp_all [Sign.gamma]` and `omega` (R10, R11, R4, R5).
+H3. `times_sound`: `cases a <;> cases b <;> simp_all [Sign.times, Sign.gamma]`, then
+    `· exact Int.mul_pos_of_neg_of_neg ha hb`, `· exact Int.mul_neg_of_neg_of_pos ha hb`,
+    `· exact Int.mul_neg_of_pos_of_neg ha hb`, `· exact Int.mul_pos ha hb`. Main:
+    `induction e with | num n => exact ofInt_sound n | var x => exact h x | plus a b iha ihb => exact plus_sound iha ihb | ...`.
 -/

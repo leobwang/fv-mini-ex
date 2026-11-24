@@ -4,15 +4,11 @@ GOAL
   distributes over `;`, satisfies the one-step unfolding equation of `while`, and is derivable as a
   precondition; conclude that every valid Hoare triple is derivable (relative completeness).
 
-REFERENCE
-  -- `Valid P c Q` is the meaning of `{P} c {Q}`; `Derivable P c Q` is provability in Hoare logic.
-  example (f g : Nat → Prop) (h : ∀ n, f n ↔ g n) : f = g := funext fun n => propext (h n)
-  -- Inversion: `cases hc with | seq h1 h2 => ...` on `hc : BigStep (.seq c1 c2) s s''`;
-  -- `cases hw with | whileF hb => ... | whileT hb hc hw => ...` for a `while` run.
-  -- Rule of consequence: `.conseq pre d post` strengthens the precondition / weakens the postcondition of `d`.
-  example (P : H024.Assn) : H024.Derivable (fun s => P s ∧ True) .skip P := .conseq (fun _ h => h.1) .skip (fun _ h => h)
-  -- `induction c generalizing Q with ...`: `while` is a keyword, so its case is `| «while» b c ih =>`.
-NOTE: Soundness of these rules is M045; here you prove the converse direction.
+GUIDE
+  Entries R1–R14: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace H024
@@ -95,25 +91,65 @@ def wp (c : Com) (Q : Assn) : Assn := fun s => ∀ s', BigStep c s s' → Q s'
 -- END SPEC
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · wp_while_body   (milestone 1: prove it first; used in wp_while and derivable_wp_while)
+  1. The goal `wp c (wp (.while b c) Q) s` unfolds to two ∀s: introduce a state, a run of `c`
+     from `s`, a final state, and a run of the loop from the middle state           R1
+  2. `h.1 : wp (.while b c) Q s` is a function: give it the final state and a run of
+     the whole loop from `s`                                                          R2
+  3. Build that run with the rule `BigStep.whileT` from `h.2` and the two runs         R3
+-/
 theorem wp_while_body (b : BExp) (c : Com) (Q : Assn) (s : State)
     (h : wp (.while b c) Q s ∧ beval s b = true) : wp c (wp (.while b c) Q) s := by
   sorry
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · wp_while_exit   (milestone 2: used in wp_while and derivable_wp_while)
+  1. `h.1` is a function: give it the final state `s` itself and a run of the loop
+     from `s` to `s`                                                                  R2
+  2. That run: the rule `BigStep.whileF` applied to `h.2`                              R3
+-/
 theorem wp_while_exit (b : BExp) (c : Com) (Q : Assn) (s : State)
     (h : wp (.while b c) Q s ∧ beval s b = false) : Q s := by
   sorry
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · derivable_wp_while   (milestone 3: needs milestones 1, 2; used in wp_derivable)
+  The loop invariant is `I := wp (.while b c) Q` itself. One term, from the outside in:
+  1. Rule of consequence around the `while` rule: precondition unchanged, and the
+     postcondition `I s ∧ beval s b = false → Q s` is milestone 2, partially applied  R4, R5
+  2. The `while` rule: its conclusion's postcondition is fixed, `I s ∧ beval s b = false`  R6
+  3. Its premise, the body: rule of consequence around `ih _` (Lean infers the
+     assertion `I`; `ih (wp (.while b c) Q)` also works); the precondition
+     `I s ∧ beval s b = true → wp c I s` is milestone 1, the postcondition `fun _ h => h`  R4, R5
+-/
 theorem derivable_wp_while (b : BExp) (c : Com) (Q : Assn)
     (ih : ∀ R, Derivable (wp c R) c R) : Derivable (wp (.while b c) Q) (.while b c) Q := by
   sorry
 
+/- SKELETON · wp_seq
+  1. Equality of assertions → pointwise equality → ↔ → two implications      R7 → R8 → R9
+  2. (→) Introduce `h`, then the runs of `c1` and `c2` (through two `wp`s)    R1
+     Apply `h` to the final state and a `seq` run built from the two runs     R2, R3
+  3. (←) Introduce `h`, the final state and a run of `.seq c1 c2`             R1
+     Invert the run: one case, `seq`, with an inaccessible middle state      R10
+     Apply `h` to the middle state (`_`), the first run, the final state,
+     and the second run                                                       R2
+-/
 -- BEGIN SPEC
 theorem wp_seq (c1 c2 : Com) (Q : Assn) : wp (.seq c1 c2) Q = wp c1 (wp c2 Q) :=
 -- END SPEC
   sorry
 
+/- SKELETON · wp_while   (uses milestones 1 and 2)
+  1. As in wp_seq: pointwise, ↔, two implications                           R7 → R8 → R9
+  2. (→) Introduce `h`; the goal is a conjunction of two implications: build it with
+     an anonymous constructor `⟨fun hb => …, fun hb => …⟩`, milestone 1 and
+     milestone 2 fully applied, each given `⟨h, hb⟩`
+  3. (←) Destructure the pair, then introduce the final state and the loop run   R11, R1
+     Invert the loop run: two cases, `whileF` and `whileT`                   R12
+     whileF: the final state became `s`; use the second component
+     whileT: use the first component, applied to `hb` and then like a `wp`    R2
+-/
 -- BEGIN SPEC
 theorem wp_while (b : BExp) (c : Com) (Q : Assn) :
     wp (.while b c) Q =
@@ -121,11 +157,29 @@ theorem wp_while (b : BExp) (c : Com) (Q : Assn) :
 -- END SPEC
   sorry
 
+/- SKELETON · wp_derivable   (uses milestone 3)
+  1. Induction on `c`, generalizing `Q`: the `seq` case needs the IH of `c1` at
+     the postcondition `wp c2 Q`, not at `Q`. The loop case is named `«while»`     R13
+  2. skip, assign: rule of consequence around the axiom `.skip` / `.assign`, with
+     precondition side `fun s h => h _ <one-step run>`                         R4, R2, R3
+  3. seq: rule of consequence around `.seq (ih1 _) (ih2 Q)`; precondition side:
+     take the runs of `c1` and `c2` and rebuild a `seq` run                    R4, R1, R2, R3
+  4. ite: the `ite` rule, each branch a consequence around `ih1 Q` / `ih2 Q` with
+     the precondition side left as `?_`                                      R14
+     Each side goal: destructure `wp … s ∧ beval s b = …`, then `iteT` / `iteF`   R11, R1, R2, R3
+  5. «while»: milestone 3 applied to the IH
+-/
 -- BEGIN SPEC
 theorem wp_derivable (c : Com) (Q : Assn) : Derivable (wp c Q) c Q :=
 -- END SPEC
   sorry
 
+/- SKELETON · completeness   (uses wp_derivable)
+  1. Rule of consequence around `wp_derivable c Q`                          R4
+  2. Precondition side `∀ s, P s → wp c Q s`: take `s`, `hP`, then unfold `wp`
+     (R1); `h : Valid P c Q` is a function too                               R2
+  3. Postcondition side: `fun _ h => h`
+-/
 -- BEGIN SPEC
 theorem completeness {P Q : Assn} {c : Com} (h : Valid P c Q) : Derivable P c Q :=
 -- END SPEC
@@ -134,7 +188,16 @@ theorem completeness {P Q : Assn} {c : Com} (h : Valid P c Q) : Derivable P c Q 
 end H024
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Equalities of assertions: `funext s; apply propext; constructor`, then build runs with the `BigStep` rules one way and invert them with `cases` the other way. Completeness is one `conseq` away from `wp_derivable`.
-H2. `wp_derivable`: induction on `c` generalizing `Q`. Each case applies the matching Hoare rule to the IHs and fixes the precondition with `conseq`; the `while` case is `derivable_wp_while`, whose loop invariant is `wp (.while b c) Q` itself.
-H3. `derivable_wp_while` has the shape `.conseq _ (.while (.conseq (wp_while_body b c Q) (ih _) _)) (wp_while_exit b c Q)`. Completeness: `.conseq _ (wp_derivable c Q) _`, where the precondition side is `Valid` unfolded.
+H1. `wp c Q s` is by definition `∀ s', BigStep c s s' → Q s'`: `intro` unfolds it, and a hypothesis
+    `h : wp c Q s` is a function you apply to a state and a run (R1, R2). Equalities of assertions:
+    `funext s; apply propext; constructor`; build runs with the `BigStep` rules one way and invert
+    them with `cases` the other way. Completeness is one `.conseq` away from `wp_derivable`.
+H2. `wp_derivable`: `induction c generalizing Q`. Each case applies the matching Hoare rule to the IHs
+    and fixes the precondition with `.conseq`; the `«while»` case is `derivable_wp_while`, whose loop
+    invariant is `wp (.while b c) Q` itself and whose two side conditions are the milestones
+    `wp_while_body` and `wp_while_exit`.
+H3. `derivable_wp_while` has the shape
+    `.conseq _ (.while (.conseq (wp_while_body b c Q) (ih _) _)) (wp_while_exit b c Q)`; the two `_`
+    that are proofs are `fun _ h => h`, the one in `ih _` is the assertion and is inferred. Completeness: `.conseq _ (wp_derivable c Q) (fun _ h => h)`, where the first `_`
+    proves `∀ s, P s → wp c Q s` from `h` (`Valid` unfolded).
 -/

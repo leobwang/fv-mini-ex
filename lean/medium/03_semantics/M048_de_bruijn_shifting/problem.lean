@@ -5,17 +5,12 @@ GOAL
   Prove: shifting by 0 is the identity, shifts at one cutoff add up, and unit shifts at
   cutoffs `c ≤ c'` commute (the cutoff `c'` moves to `c' + 1`).
 
-REFERENCE
-  example : shift 1 0 (.lam (.app (.var 0) (.var 1))) = .lam (.app (.var 0) (.var 2)) := rfl
-  -- the cutoff grows under `lam`, so the IH must hold for every cutoff:
-  -- `induction t generalizing c with | var n => .. | lam t ih => .. | app t u iht ihu => ..`
-  example (n c : Nat) (h : ¬ n < c) : shift 1 c (.var n) = .var (n + 1) := by simp [shift, h]
-  example (n c : Nat) : shift 0 c (.var n) = .var n := by simp only [shift]; split <;> rfl
-  example (n c : Nat) (h : ¬ n < c) : ¬ n + 1 < c := by omega   -- feed such facts to `simp [shift, ..]`
-  -- `by_cases h : n < c` splits on an index comparison; `show ¬ n + 1 < c by omega` inside simp.
 BANNED: try?, grind
-NOTE: `grind` is banned because `try?` prints `fun_induction shift .. <;> grind` for `shift_shift`.
-  `shift_zero` is the warm-up; `shift_comm` is the real work. Do not leave `exact?`/`apply?` in.
+GUIDE
+  Entries R1–R14: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M048
@@ -34,16 +29,42 @@ def shift (d c : Nat) : Tm → Tm
   | .app t u => .app (shift d c t) (shift d c u)
 -- END SPEC
 
+/- SKELETON · shift_zero  (the warm-up)
+  1. Induction on `t`, generalizing the cutoff: `lam` recurses at `c + 1`:   R1, R2
+  2. `var n`: unfold `shift` to an `if`, split it; both goals are `rfl`
+     (`n + 0` reduces to `n`):                                              R3 → R4, rfl
+  3. `lam`, `app`: unfold and rewrite with the generalized IH(s):           R5
+-/
 -- BEGIN SPEC
 theorem shift_zero (c : Nat) (t : Tm) : shift 0 c t = t :=
 -- END SPEC
   sorry
 
+/- SKELETON · shift_shift
+  1. Induction on `t` generalizing `c`, as in `shift_zero`:                  R1, R2
+  2. `var n`: split on `n < c`:                                              R6
+       `n < c`:  both inner and outer `if` are decided by `h`:               R7
+       `¬n < c`: the inner `if` by `h`; the outer one asks `n + d' < c`,
+                 decide it with a fact proved by omega; `simp` strips
+                 `Tm.var`; finish the sum (or close it with omega):          R7, R9 (R8), R10, R11, R12
+  3. `lam`, `app`:                                                           R5
+-/
 -- BEGIN SPEC
 theorem shift_shift (d d' c : Nat) (t : Tm) : shift d c (shift d' c t) = shift (d + d') c t :=
 -- END SPEC
   sorry
 
+/- SKELETON · shift_comm  (the real work)
+  1. Induction on `t` generalizing BOTH cutoffs; `h : c ≤ c'` is carried
+     along and becomes a premise of the IH:                                  R1, R13
+  2. `var n`: unfold the inner `shift`s, then split on `n < c'`:             R3, R6
+       `n < c'`:  split again on `n < c`; in both branches decide every
+                  `if` with `h1`, `h2` and facts such as `n < c' + 1`:       R6, R7, R9 (R8)
+       `¬n < c'`: no second split; `¬n < c` and the outer conditions
+                  follow from `h1`, `h` by omega:                            R7, R9 (R8)
+  3. `lam`: the IH at `c + 1`, `c' + 1`, its premise by omega, inside simp:  R14 (R8), R5
+  4. `app`: both IHs at `c`, `c'` with the same `h`, inside simp:            R14, R5
+-/
 -- BEGIN SPEC
 theorem shift_comm (c c' : Nat) (t : Tm) (h : c ≤ c') :
     shift 1 c (shift 1 c' t) = shift 1 (c' + 1) (shift 1 c t) :=
@@ -53,7 +74,14 @@ theorem shift_comm (c c' : Nat) (t : Tm) (h : c ≤ c') :
 end M048
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. All three are inductions on `t`. The interesting case is `var`; `lam` is the IH at the bigger cutoff(s).
-H2. Generalize every cutoff (`generalizing c`, and `c c'` for `shift_comm`, together with `h`): under `lam` you need the IH at `c + 1` (and `c' + 1`, with `c + 1 ≤ c' + 1`). In the `var` case split every `if` and let `omega` compare indices.
-H3. `shift_comm`: `induction t generalizing c c' with`; `lam t ih => simp [shift, ih (c + 1) (c' + 1) (by omega)]`; in the `var n` case `by_cases h1 : n < c'` and `by_cases h2 : n < c`, then e.g. `simp [shift, h1, h2, show n < c' + 1 by omega]`.
+H1. All three are inductions on `t` (R1). The interesting case is `var`: unfold `shift` and decide each
+    `if` by comparing indices. `lam` is the IH at the bigger cutoff(s), so the cutoffs must be generalized.
+H2. `induction t generalizing c with` (R2), and `generalizing c c'` for `shift_comm`, which also carries
+    `h` into the IH (R13). `var` case: `split <;> rfl` for `shift_zero` (R4); `by_cases` on `n < c`
+    (and on `n < c'`) elsewhere (R6), then `simp [shift, h, show … by omega]` (R7, R9).
+    `lam`/`app`: `simp [shift, ih]` (R5), except in `shift_comm`, where the IH needs its premise (R14).
+H3. `shift_shift`, `¬n < c`: `simp [shift, h, show ¬ n + d' < c by omega, Nat.add_assoc, Nat.add_comm d d']`.
+    `shift_comm`: `lam t ih => simp [shift, ih (c + 1) (c' + 1) (by omega)]`; `app`: `iht c c' h`, `ihu c c' h`;
+    `var n`: `simp only [shift]`, `by_cases h1 : n < c'`, inside `by_cases h2 : n < c`, then e.g.
+    `simp [shift, h1, h2, show n < c' + 1 by omega]`.
 -/

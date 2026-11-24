@@ -2,18 +2,24 @@
 GOAL
   `Var(a X + b) = a² Var(X)`: shifting does not change the variance, scaling by `a` multiplies it by `a²`.
 
-REFERENCE
-  `Var[X; μ]` is the variance, `∫ ω, (X ω - μ[X]) ^ 2 ∂μ` for measurable `X` (real-valued; it is 0 when
-  `X` is not square-integrable). `fun ω => a * X ω + b` is the random variable `a X + b`.
-  `AEStronglyMeasurable X μ`: `X` agrees `μ`-a.e. with a measurable function (the weakest measurability).
-  #check variance_add_const              -- AEStronglyMeasurable X μ → ∀ c, Var[fun ω => X ω + c; μ] = Var[X; μ]
-  #check variance_const_mul              -- (c X μ) → Var[fun ω => c * X ω; μ] = c ^ 2 * Var[X; μ]
-  #check AEStronglyMeasurable.const_mul  -- AEStronglyMeasurable f μ → ∀ c, AEStronglyMeasurable (fun x => c * f x) μ
+GUIDE
+  Entries R1–R3: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace E097
 
+/- SKELETON · variance_affine
+  Read the left side as `Var[Y + b]` with `Y = fun ω => a * X ω`; the outermost operation is `+ b`.
+  1. Measurability of `Y`, from `hX` (a term, or a `have`):               R1
+       AEStronglyMeasurable (fun x => a * X x) μ
+  2. Remove the shift `+ b`, giving `rw` the fact from step 1:            R2
+       goal: Var[fun x => a * X x; μ] = a ^ 2 * Var[X; μ]
+  3. Pull the factor `a` out as `a ^ 2`; `rw` then closes the goal:       R3
+-/
 -- BEGIN SPEC
 open MeasureTheory ProbabilityTheory
 
@@ -26,7 +32,8 @@ theorem variance_affine {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsP
 end E097
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Read `a * X ω + b` as `Y ω + b` with `Y = fun ω => a * X ω`.
-H2. Remove the `+ b` first (that lemma needs measurability of `Y`), then pull out the `a`.
-H3. `rw [variance_add_const (hX.const_mul a), variance_const_mul]`.
+H1. Read `a * X ω + b` as `Y ω + b` with `Y = fun ω => a * X ω`: first the shift, then the scaling.
+H2. Rewrite with `variance_add_const` (R2), which needs `AEStronglyMeasurable Y μ` for this `Y`, not for `X`:
+    build it from `hX` with R1. Then `variance_const_mul` (R3) needs no argument.
+H3. `rw [variance_add_const (hX.const_mul a), …]`: the second rewrite in the list is R3, and it closes the goal.
 -/

@@ -4,21 +4,13 @@ GOAL
   of `c` ends in a state satisfying `Q`. Prove the assignment, sequencing, consequence and while
   rules sound, then use them to verify a countdown loop.
 
-REFERENCE
-  -- IMP: arithmetic `AExp`, boolean `BExp`, commands `Com`; `update s x v` sets variable `x` to `v`;
-  -- `BigStep c s s'` means: running `c` from state `s` terminates in state `s'`.
-  -- `Assn := State → Prop` is an assertion about states.
-  -- `intro s s' hp h; cases h` inverts a derivation of a non-loop command.
-  -- `induction h` fails on `h : BigStep (.while b c) s s'` (the command is not a variable):
-  example (b : BExp) (c : Com) (s s' : State) (h : BigStep (.while b c) s s') : True := by
-    generalize hw : Com.while b c = w at h   -- now `induction h`; `hw` remembers the shape
-    trivial
-  -- in the `whileT` case `cases hw` identifies `b` and `c`; `injection`/`cases hw` kills the rest.
-  example (s : State) : update s 0 5 0 = 5 := by simp [update]
-  example (s : State) : beval s (.le (.var 0) (.num 0)) = decide (s 0 ≤ 0) := by simp [beval, aeval]
 BANNED: try?, grind
-NOTE: `grind` is banned because `try?` prints a `grind [= Hoare]` one-liner for `hoare_conseq`.
-  Do not leave search tactics (`exact?`, `apply?`) in the file.
+
+GUIDE
+  Entries R1–R19: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M045
@@ -85,24 +77,52 @@ def countdown : Com :=
   .while (.not (.le (.var 0) (.num 0))) (.assign 0 (.plus (.var 0) (.num (-1))))
 -- END SPEC
 
+/- SKELETON · hoare_assign
+  1. Open the triple: states `s s'`, `hp`, the derivation `h : BigStep (.assign x a) s s'`:  R1
+  2. Invert `h`: only rule `assign` ends in `.assign x a`, and it fixes the end state
+     `s' := update s x (aeval s a)`:                                                    R2
+  3. `hp` now has exactly the type of the goal:                                         exact hp
+-/
 -- BEGIN SPEC
 theorem hoare_assign (Q : Assn) (x : Nat) (a : AExp) :
     Hoare (fun s => Q (update s x (aeval s a))) (.assign x a) Q :=
 -- END SPEC
   sorry
 
+/- SKELETON · hoare_seq
+  1. Open the triple:                                                                   R1
+  2. Invert `h`, naming the premises of rule `seq`:
+       hc1 : BigStep c1 s s'✝,   hc2 : BigStep c2 s'✝ s''                              R3
+  3. `h1` on `hp, hc1` gives `Q` at the middle state; `h2` on that and `hc2` gives `R s''`:
+     one nested application, middle states as `_`                                       R4, R4
+-/
 -- BEGIN SPEC
 theorem hoare_seq {P Q R : Assn} {c1 c2 : Com} (h1 : Hoare P c1 Q) (h2 : Hoare Q c2 R) :
     Hoare P (.seq c1 c2) R :=
 -- END SPEC
   sorry
 
+/- SKELETON · hoare_conseq   (a term proof; no tactic needed)
+  1. The triple is a function of `s s' hp' hc`:                                         R5
+  2. Its body, inside out: `hp` turns `P' s` into `P s`; `h` (with `hc`) gives `Q s'`;
+     `hq` gives `Q' s'`:                                                                R4, R4, R4
+-/
 -- BEGIN SPEC
 theorem hoare_conseq {P P' Q Q' : Assn} {c : Com} (h : Hoare P c Q) (hp : ∀ s, P' s → P s)
     (hq : ∀ s, Q s → Q' s) : Hoare P' c Q' :=
 -- END SPEC
   sorry
 
+/- SKELETON · hoare_while
+  1. Open the triple: `s s'`, `hI : I s`, `h : BigStep (.while b c) s s'`:              R1
+     (the new `h` hides the body triple, shown as `h✝` until step 3 consumes the derivation)
+  2. `induction h` refuses the non-variable command: replace it by `w`, keeping `hw`:  R6
+  3. Induct on `h` with named alternatives; `hI` moves into the IHs by itself:          R7
+  4. `whileF hb`: identify the loop's guard and body with `b c`, then pair `hI, hb`:    R8, R10
+  5. `whileT hb hc _ _ ih2`: identify `b c`; the body triple `h` on `⟨hI, hb⟩` and `hc`
+     gives `I` at the middle state; pass it and `rfl` to `ih2`:                        R8, R4 inside R11
+  6. All other rules (`| _ =>`): `hw` equates two different constructors of `Com`:      R9
+-/
 -- BEGIN SPEC
 theorem hoare_while {I : Assn} {b : BExp} {c : Com}
     (h : Hoare (fun s => I s ∧ beval s b = true) c I) :
@@ -110,6 +130,15 @@ theorem hoare_while {I : Assn} {b : BExp} {c : Com}
 -- END SPEC
   sorry
 
+/- SKELETON · countdown_correct
+  Invariant `I := fun s => 0 ≤ s 0`. Outside in, the triple is: `hoare_conseq` around
+  `hoare_while` (with `I` named), whose body triple is `hoare_conseq` around `hoare_assign`.
+  1. Build it with one `refine`; the two trivial consequence sides are R14, the two
+     arithmetic ones are `?_`:                                                          R12, R13, R14
+  2. `?_` 1, the body keeps `I`: `intro s h`, evaluate `beval`/`aeval`/`update` in `h`
+     and the goal, finish:                                                              R15, R16, R18, R19
+  3. `?_` 2, the exit gives `s 0 = 0`: `intro s h`, evaluate the guard in `h`, finish:  R15, R17, R19
+-/
 -- BEGIN SPEC
 theorem countdown_correct : Hoare (fun s => 0 ≤ s 0) countdown (fun s => s 0 = 0) :=
 -- END SPEC
@@ -118,7 +147,7 @@ theorem countdown_correct : Hoare (fun s => 0 ≤ s 0) countdown (fun s => s 0 =
 end M045
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Unfold `Hoare` (`intro s s' hp h`) and invert the derivation `h`. Only the while rule needs an induction, on the derivation, because the loop's own derivation appears inside it.
-H2. `hoare_while`: `generalize hw : Com.while b c = w at h`, then `induction h`; `whileF` gives `⟨hI, hb⟩`, `whileT` uses the body triple and then the IH, and every other rule contradicts `hw`. `countdown_correct`: invariant `0 ≤ s 0`; combine `hoare_conseq`, `hoare_while` and `hoare_assign`.
-H3. `countdown_correct`: `refine hoare_conseq (hoare_while (I := fun s => 0 ≤ s 0) (hoare_conseq (hoare_assign _ _ _) ?_ (fun _ h => h))) (fun _ h => h) ?_`, then each side condition by `intro s h; simp [beval, aeval, update] at *; omega`.
+H1. Each rule: open `Hoare` with `intro s s' hp h` (R1) and invert the derivation `h` with `cases` (R2, R3); `hoare_conseq` needs no inversion and is a one-line term (R5). Only `hoare_while` needs an induction on the derivation, because the loop's derivation contains the same loop; `countdown_correct` never touches `BigStep`, only the four rules.
+H2. `hoare_while`: `generalize hw : Com.while b c = w at h`, then `induction h with`; in `whileF`/`whileT` first `cases hw`; `whileF` is `⟨hI, hb⟩`, `whileT` applies the body triple and then the IH (its equation premise is `rfl`), and every other rule is `| _ => cases hw`. `countdown_correct`: invariant `0 ≤ s 0`; `hoare_conseq` around `hoare_while` around `hoare_conseq` around `hoare_assign`.
+H3. `countdown_correct`: `refine hoare_conseq (hoare_while (I := fun s => 0 ≤ s 0) (hoare_conseq (hoare_assign _ _ _) ?_ (fun _ h => h))) (fun _ h => h) ?_`, then the body side by `intro s h; simp [beval, aeval, update] at *; omega` and the exit side by `intro s h; simp [beval, aeval] at h; omega`.
 -/

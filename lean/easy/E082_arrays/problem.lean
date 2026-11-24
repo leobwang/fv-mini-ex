@@ -2,42 +2,58 @@
 GOAL
   Implement `pushTwice a x` (append `x` twice to the array `a`) and prove its size, its list view,
   and that every old index still holds its old element.
-
-REFERENCE
-  #eval #[1, 2].push 3                   -- #[1, 2, 3]: `#[..]` is an array literal, `push` appends
-  example : (#[10, 20, 30] : Array Nat)[1]? = some 20 := rfl   -- `a[i]?` returns an Option
-  #check @Array.size_push                -- (xs.push v).size = xs.size + 1
-  #check @Array.toList_push              -- (xs.push x).toList = xs.toList ++ [x]
-  #check @Array.getElem?_push            -- (xs.push x)[i]? = if i = xs.size then some x else xs[i]?
-  #check @Array.getElem?_eq_getElem      -- (h : i < xs.size) : xs[i]? = some xs[i]
-                                         --   `xs[i]` (no ?) needs a proof of `i < xs.size`; Lean finds `h` in context
-  #check @if_neg                         -- ¬c → (if c then t else e) = e
-  `unfold f` replaces `f` by its body; `simp [f]` also unfolds `f` and uses `@[simp]` lemmas such as `size_push`.
 BANNED: grind, try?, exact?
+
+GUIDE
+  Entries R1–R11: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace E082
 
+/- SKELETON · pushTwice
+  1. Append `x` to `a`, then append `x` to that result:                        R1
+-/
 -- BEGIN SPEC
 def pushTwice (a : Array Nat) (x : Nat) : Array Nat :=
 -- END SPEC
   sorry
 
+/- SKELETON · lit_size
+  1. A literal array: Lean counts its entries.                                  R2
+-/
 -- BEGIN SPEC
 theorem lit_size : #[1, 2, 3].size = 3 :=
 -- END SPEC
   sorry
 
+/- SKELETON · pushTwice_size
+  1. Unfold `pushTwice` and simplify in one call; `simp` rewrites each push's
+     size and closes `a.size + 1 + 1 = a.size + 2`:                            R3 (uses R4)
+-/
 -- BEGIN SPEC
 theorem pushTwice_size (a : Array Nat) (x : Nat) : (pushTwice a x).size = a.size + 2 :=
 -- END SPEC
   sorry
 
+/- SKELETON · pushTwice_toList
+  1. Unfold and simplify in one call; `simp` turns each push into `++ [x]`
+     and merges `a.toList ++ [x] ++ [x]` into `a.toList ++ [x, x]`:            R3 (uses R5, R6)
+-/
 -- BEGIN SPEC
 theorem pushTwice_toList (a : Array Nat) (x : Nat) : (pushTwice a x).toList = a.toList ++ [x, x] :=
 -- END SPEC
   sorry
 
+/- SKELETON · pushTwice_old
+  1. Expose the two pushes `(a.push x).push x`:                                 R7
+  2. Outer push: rewrite its `[i]?` into an `if`, take the `else` branch;
+     the condition `¬i = (a.push x).size` needs the size rewritten first:      R8, R9 with R10
+  3. Inner push: the same, condition `¬i = a.size` (omega alone):              R8, R9
+  4. What is left is `a[i]? = some a[i]`; the bound is `h`:                    R11
+-/
 -- BEGIN SPEC
 theorem pushTwice_old (a : Array Nat) (x i : Nat) (h : i < a.size) :
     (pushTwice a x)[i]? = some a[i] :=
@@ -47,9 +63,11 @@ theorem pushTwice_old (a : Array Nat) (x i : Nat) (h : i < a.size) :
 end E082
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `pushTwice` is two `push`es. A literal's size is computed by `rfl` (or `decide`).
-H2. Size and list view: `simp [pushTwice]` (the `push` lemmas are simp lemmas). For old indices,
-    `unfold pushTwice` and rewrite with `Array.getElem?_push` twice; each time the `if` is false.
+H1. `pushTwice` is two `push`es (R1); a literal's size is computed by `rfl` (R2). For size and list view,
+    `simp` knows the `push` lemmas once it can see through `pushTwice` (R3–R6).
+H2. Size and list view: `simp [pushTwice]`. Old index: `unfold pushTwice` (R7), then twice
+    `rw [Array.getElem?_push]` + `if_neg` (R8, R9): `i < a.size`, so neither `if` condition holds. The outer
+    condition talks about `(a.push x).size`: simplify it before `omega` (R10). Finish with R11.
 H3. `rw [Array.getElem?_push, if_neg (by simp; omega), Array.getElem?_push, if_neg (by omega)]`,
     then `exact Array.getElem?_eq_getElem h`.
 -/

@@ -4,19 +4,12 @@ GOAL
   context `Γ` (a list: `Γ[n]` is the type of `var n`). Prove it is sound and complete for the
   typing relation `HasType Γ t A` ("`t` has type `A` in `Γ`").
 
-REFERENCE
-  example (A : Ty) (Γ : List Ty) : (A :: Γ)[0]? = some A := List.getElem?_cons_zero
-  example (A : Ty) (Γ : List Ty) (n : Nat) : (A :: Γ)[n + 1]? = Γ[n]? := List.getElem?_cons_succ
-  -- `split at h` on `h : (match typeOf (A :: Γ) t with ...) = some B` gives one goal per arm, with
-  -- the scrutinee's value as a hypothesis (`heq : typeOf (A :: Γ) t = some B'`).
-  example (A B : Ty) (h : (if A = B then some 1 else none) = some 1) : A = B := by
-    split at h <;> simp_all     -- `deriving DecidableEq` is what makes `if A = B` legal
-  example (A B : Ty) (h : some A = some B) : A = B := Option.some.inj h
-  -- `subst h` replaces a variable everywhere using `h : x = e` or `h : e = x`;
-  -- `subst_vars` does this for every such equation in the context at once.
 BANNED: try?, grind
-NOTE: `grind` is banned because `try?` prints `(induction h) <;> grind [= typeOf]` for the easy
-  half, `typeOf_complete`. Do not leave `exact?`/`apply?` in the file.
+GUIDE
+  Entries R1–R18: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M049
@@ -52,6 +45,21 @@ def typeOf : List Ty → Tm → Option Ty
     | _, _ => none
 -- END SPEC
 
+/- SKELETON · typeOf_sound
+  1. Induction on the term, keeping the context and the type general
+     (the `lam` body is checked in `B :: Γ`):                               R1
+  2. `var n`: `h` already is the premise of `HasType.var` (by definition):  R2
+  3. `lam B t ih`: unfold one step of `typeOf` in `h`, split the `match`:   R3 → R4
+       `some` branch: `h : some (B.arr B✝) = some A`; solve it for `A`,
+       then apply the rule to the IH at `heq✝`:                             R5 → R2, R7, R6
+       `none` branch: `h : none = some A`:                                  R8
+  4. `app t u iht ihu`: unfold, split the two-scrutinee `match`:           R3 → R9
+       first branch: split the `if`:                                        R10
+         true:  solve `h : some B✝ = some A`, merge `A✝` and `A'✝`, apply
+                the rule to both IHs:                                       R5 → R11 → R2, R7, R6
+         false: `h : none = some A`:                                        R8
+       catch-all branch: `h : none = some A`:                               R8
+-/
 -- BEGIN SPEC
 theorem typeOf_sound {Γ : List Ty} {t : Tm} {A : Ty} (h : typeOf Γ t = some A) : HasType Γ t A :=
 -- END SPEC
@@ -74,6 +82,13 @@ theorem typeOf_sound {Γ : List Ty} {t : Tm} {A : Ty} (h : typeOf Γ t = some A)
         · simp at h
       · simp at h
 
+/- SKELETON · typeOf_complete
+  1. Induction on the derivation `h`, one alternative per rule:             R12
+  2. `var hn`: unfold `typeOf`; the goal is then `hn`:                      R13
+  3. `lam _ ih`: unfold `typeOf` and rewrite the inner call with `ih`:      R14
+  4. `app _ _ ih1 ih2`: the same with `ih1`, `ih2`; the `if A = A` that
+     appears is decided by the same `simp` call:                           R14, R15
+-/
 -- BEGIN SPEC
 theorem typeOf_complete {Γ : List Ty} {t : Tm} {A : Ty} (h : HasType Γ t A) : typeOf Γ t = some A :=
 -- END SPEC
@@ -84,8 +99,11 @@ theorem typeOf_complete {Γ : List Ty} {t : Tm} {A : Ty} (h : HasType Γ t A) : 
     | app _ _ ih1 ih2 => simp [typeOf, ih1, ih2]
 
 -- MILESTONE (optional: change or delete)
--- Types are unique: rewrite both `typeOf_complete` facts into one equation `some A = some B`,
--- then use `Option.some.inj`.
+/- SKELETON · type_unique
+  1. `have h1 := typeOf_complete hA`             (h1 : typeOf Γ t = some A)
+  2. rewrite `h1` with `typeOf_complete hB`:     R16    (h1 : some B = some A)
+  3. strip the `some`s and flip the equation:     R17, R18
+-/
 theorem type_unique {Γ : List Ty} {t : Tm} {A B : Ty} (hA : HasType Γ t A) (hB : HasType Γ t B) :
     A = B := by
   have h1 := typeOf_complete hA
@@ -95,7 +113,12 @@ theorem type_unique {Γ : List Ty} {t : Tm} {A B : Ty} (hA : HasType Γ t A) (hB
 end M049
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Soundness: induct on the term `t` (keeping `Γ` and `A` general: `lam` extends the context). Completeness: induct on the derivation `h`.
-H2. Soundness: in each case unfold one step of `typeOf` in `h` and `split at h` until `h` says `some _ = some A`; read off the pieces and rebuild with `HasType.lam`/`HasType.app`. Completeness: `simp [typeOf, ih]` in each case.
-H3. `app` case of soundness: `simp only [typeOf] at h; split at h; · split at h; · cases h; subst_vars; exact .app (iht ‹_›) (ihu ‹_›); · simp at h; · simp at h`.
+H1. Soundness: induct on the term `t`, generalizing `Γ` and `A` (the `lam` body lives in `B :: Γ`).
+    Completeness: induct on the derivation `h`; no generalizing needed.
+H2. Soundness, each case: `simp only [typeOf] at h`, then `split at h` until `h` says `some _ = some A`
+    (`app`: the two-scrutinee `match` first, then the `if`); `cases h`, and rebuild with
+    `.lam`/`.app` applied to the IHs at the `heq✝` facts (`‹_›`). Every `none = some A` branch: `simp at h`.
+    Completeness, each case: `simp [typeOf, ih]` (with both IHs for `app`); `var`: `simpa [typeOf] using hn`.
+H3. `app` case of soundness: `simp only [typeOf] at h; split at h; · split at h; · cases h; subst_vars;
+    exact .app (iht ‹_›) (ihu ‹_›); · simp at h; · simp at h`.
 -/

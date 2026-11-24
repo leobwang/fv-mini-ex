@@ -4,40 +4,89 @@ GOAL
   `a = βJz` (β = 1/(kB T), J = coupling, z = number of neighbours). Prove a solution `m > 0`
   (spontaneous magnetisation) exists iff `a > 1`, i.e. iff `T < T_c = Jz/kB`.
 
-REFERENCE
-  #check Real.tanh_eq         -- tanh x = (exp x - exp (-x)) / (exp x + exp (-x))
-  #check Real.add_one_le_exp  -- x + 1 ≤ exp x   (strict: `Real.add_one_lt_exp : x ≠ 0 → x + 1 < exp x`)
-  #check strictMonoOn_of_deriv_pos  -- Convex ℝ D → ContinuousOn f D → (∀ x ∈ interior D, 0 < deriv f x) → StrictMonoOn f D
-  #check interior_Ici         -- interior (Set.Ici a) = Set.Ioi a    (convexity: `convex_Ici 0`)
-  #check HasDerivAt.deriv     -- HasDerivAt f f' x → deriv f x = f'   (`.mul`, `.sub`, `.congr_deriv` combine them)
-  example (x : ℝ) : HasDerivAt (fun y => Real.exp (-2 * y)) (Real.exp (-2 * x) * (-2)) x := by simpa using ((hasDerivAt_id x).const_mul (-2)).exp
-  #check intermediate_value_Icc'  -- a ≤ b → ContinuousOn f (Icc a b) → Icc (f b) (f a) ⊆ f '' Icc a b
-  #check Real.tanh_lt_one     -- tanh x < 1
-  #check Real.tanh_eq_sinh_div_cosh  -- Mathlib has no `Real.continuous_tanh`: go through sinh / cosh
-  #check div_lt_iff₀          -- 0 < c → (b / c < a ↔ b < a * c)   (two fractions: `div_le_div_iff₀`)
-NOTE: `Set.Icc a b = [a, b]`, `Set.Ici a = [a, ∞)`, `Set.Ioi a = (a, ∞)`; `f '' s` is the image of `s`.
+GUIDE
+  Entries R1–R46: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace H098
 
+/- SKELETON · tanh_exp_form   (milestone 1; used by milestones 2 and 3)
+  1. Unfold tanh into exponentials:                                         R1
+  2. Write 2 * y as y + y, then split exp (y + y) and exp (-y):             R2, R3, R4
+  3. Put 0 < exp y in the context, then clear the denominators:             R5, R6
+-/
 -- MILESTONE (optional: change or delete)
 theorem tanh_exp_form (y : ℝ) :
     Real.tanh y = (Real.exp (2 * y) - 1) / (Real.exp (2 * y) + 1) := by
   sorry
 
+/- SKELETON · tanh_lt_self   (milestone 2; uses milestone 1; used in the (←) direction)
+  Idea: f y = (1 + y) * exp (-2 * y) - (1 - y) has f 0 = 0 and is strictly increasing on [0, ∞).
+  1. Name f:                                                                R7
+  2. hmono : StrictMonoOn f (Set.Ici 0)
+       reduce to a positive derivative, continuity by fun_prop:             R8, R9
+       intro x hx; make hx into 0 < x:                                      R10
+       hd : HasDerivAt f (1 - (1 + 2 * x) * Real.exp (-2 * x)) x
+         three pieces, each from hasDerivAt_id x and cleaned by R16:
+           h1 : HasDerivAt (fun y => 1 + y) 1 x                             R11 → R12
+           h2 : HasDerivAt (fun y => Real.exp (-2 * y)) (Real.exp (-2 * x) * (-2)) x
+                                                                            R11 → R13 → R14
+           h3 : HasDerivAt (fun y => 1 - y) (-1) x                          R11 → R15
+         combine them and restate the derivative (by ring):                 R17, R18, R19
+       rewrite deriv f x with hd:                                           R20
+       facts: 2 * x + 1 < exp (2 * x)  (side goal by R21):                  R22
+              exp (2 * x) * exp (-2 * x) = 1:                               rw [← Real.exp_add] (R3), R23
+       finish, hint exp_pos (-2 * x):                                       R24
+  3. key : f 0 < f y from hmono at 0 and y:                                 R25, R26
+     unfold f and evaluate at 0 in key:                                     R27, R28
+  4. tanh y < y: milestone 1, clear the denominator (side goal R21):       rw [tanh_exp_form], R29
+     exp (2 * y) * exp (-2 * y) = 1 as in step 2, finish with hints:        R3, R23, R24 with R5
+-/
 -- MILESTONE (optional: change or delete)
 theorem tanh_lt_self (y : ℝ) (hy : 0 < y) : Real.tanh y < y := by
   sorry
 
+/- SKELETON · le_tanh   (milestone 3; uses milestone 1; used in the (→) direction)
+  1. Milestone 1, then cross-multiply (side goals by R21):                  rw [tanh_exp_form], R30
+  2. Finish with exp (2 * y) ≥ 2 * y + 1 as a hint:                         R24 with R31
+-/
 -- MILESTONE (optional: change or delete)
 theorem le_tanh (y : ℝ) (hy : 0 ≤ y) : y / (1 + y) ≤ Real.tanh y := by
   sorry
 
+/- SKELETON · continuous_tanh   (milestone 4; used in the (→) direction)
+  1. Replace tanh by fun x => sinh x / cosh x (Real.tanh_eq_sinh_div_cosh): R32
+  2. Quotient of continuous functions, denominator ≠ 0:                     R33: R9, R9, R34
+-/
 -- MILESTONE (optional: change or delete)
 theorem continuous_tanh : Continuous Real.tanh := by
   sorry
 
+/- SKELETON · mean_field_transition
+  Prove the four milestones first: tanh_exp_form (used by tanh_lt_self, le_tanh),
+  tanh_lt_self (used in step 8), le_tanh (step 3), continuous_tanh (step 4).
+  Split the ↔ with constructor (E005).
+  (→) intro h1 : 1 < a.
+  1. m₀ := (a - 1) / (2 * a):                                               R35
+  2. hm₀pos : 0 < m₀                                                        R36, R37
+     hm₀1 : m₀ ≤ 1                                                          rw [hm₀], R38, R37
+     ham₀ : a * m₀ = (a - 1) / 2                                            rw [hm₀], R6
+  3. g := fun m => Real.tanh (a * m) - m:                                   R7
+     hg0 : 0 ≤ g m₀   le_tanh at a * m₀ (side goal R21), then
+                      m₀ ≤ a * m₀ / (1 + a * m₀):                           R39 (side goal R21), rw [ham₀], R24
+                      unfold g, finish:                                     R27, R37
+     hg1 : g 1 ≤ 0    unfold g (with mul_one), tanh a < 1:                  R27, R40, R37
+  4. hcont : ContinuousOn g (Set.Icc m₀ 1), with continuous_tanh in context: R41, R9
+  5. IVT on [m₀, 1] and unpack m, hm, hgm:                                  R42 → R43
+  6. Give m: 0 < m from 0 < m₀ ≤ m; tanh (a * m) = m from hgm:              R44, R27, R37
+  (←) rintro ⟨m, hm, heq⟩ (E005).
+  7. Suppose a ≤ 1:                                                         R45, R46
+  8. tanh (a * m) < a * m (milestone 2, side goal R21), then finish:        R24
+-/
 -- BEGIN SPEC
 theorem mean_field_transition (a : ℝ) (ha : 0 < a) :
     1 < a ↔ ∃ m : ℝ, 0 < m ∧ Real.tanh (a * m) = m :=
@@ -48,14 +97,15 @@ end H098
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. (←) If `a ≤ 1` and `m > 0` solved it, `m = tanh (a m) < a m ≤ m`. (→) `g m = tanh (a m) - m` is
-    positive for small `m > 0` and negative at `m = 1` (`tanh < 1`): use the intermediate value theorem.
-H2. With `tanh y = (e^{2y} - 1)/(e^{2y} + 1)`: `tanh y < y` ⇔ `1 - y < (1 + y) e^{-2y}`; the right side
-    minus the left, `f y = (1 + y) e^{-2y} - (1 - y)`, has `f 0 = 0` and `f' y = 1 - (1 + 2y) e^{-2y} > 0`
-    for `y > 0` (since `e^{2y} > 1 + 2y`), so `f` is strictly increasing on `[0, ∞)`.
-    The lower bound `y/(1+y) ≤ tanh y` is cross-multiplication plus `e^{2y} ≥ 1 + 2y`.
-H3. (→): take `m₀ = (a - 1) / (2 * a)`, so `a m₀ = (a - 1)/2` and `le_tanh` gives `g m₀ ≥ 0`; then
-    `obtain ⟨m, hm, hgm⟩ := intermediate_value_Icc' hm₀1 hcont ⟨hg1, hg0⟩` on `Set.Icc m₀ 1`.
-    `tanh_lt_self`: `apply strictMonoOn_of_deriv_pos (convex_Ici 0)`, then `rw [hd.deriv]` where
-    `hd : HasDerivAt f (1 - (1 + 2 * x) * Real.exp (-2 * x)) x`; finish with `nlinarith` using
-    `Real.exp (2 * x) * Real.exp (-2 * x) = 1`.
+    `≥ 0` at a small `m₀ > 0` and `< 0` at `m = 1` (`tanh < 1`, R40): use the intermediate value theorem
+    for a decreasing sign change (R42). Everything rests on `y / (1 + y) ≤ tanh y < y` for `y > 0`.
+H2. Milestone 1 rewrites `tanh y = (e^{2y} - 1)/(e^{2y} + 1)`. Then `tanh y < y` ⇔ `1 - y < (1 + y) e^{-2y}`:
+    `f y = (1 + y) e^{-2y} - (1 - y)` has `f 0 = 0` and `f' y = 1 - (1 + 2y) e^{-2y} > 0` for `y > 0`
+    (since `e^{2y} > 1 + 2y`, R22), so `f` is strictly increasing on `[0, ∞)` (R8). The lower bound is
+    cross-multiplication (R30) plus `e^{2y} ≥ 1 + 2y` (R31). Continuity of tanh goes through sinh / cosh (R32).
+H3. (→): `set m₀ := (a - 1) / (2 * a) with hm₀`, so `a * m₀ = (a - 1) / 2`; then
+    `obtain ⟨m, hm, hgm⟩ := intermediate_value_Icc' hm₀1 hcont ⟨hg1, hg0⟩`.
+    `tanh_lt_self`: `apply strictMonoOn_of_deriv_pos (convex_Ici 0) (by fun_prop)`, then `rw [hd.deriv]` where
+    `hd : HasDerivAt f (1 - (1 + 2 * x) * Real.exp (-2 * x)) x`; finish with
+    `nlinarith [Real.exp_pos (-2 * x)]` using `Real.exp (2 * x) * Real.exp (-2 * x) = 1` in the context.
 -/

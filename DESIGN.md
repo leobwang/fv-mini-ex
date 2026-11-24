@@ -436,7 +436,10 @@ what it does, the lemma's statement when it is a lemma, and its placeholders wit
 which familiar types meet a type-class bracket). Then a `| Before | After |` table of proof states
 (`Γ ⊢ G`, showing only the hypotheses that change). Every `⊢` cell in a table row and every line of a
 ```` ```lean-goal ```` block must be a state that Lean reaches in `guide.lean`, copied from the
-infoview; `guide_sync.py` checks this by compiling an instrumented copy.
+infoview; `guide_sync.py` checks this by compiling an instrumented copy. In a cell, hypotheses
+are separated by `, ` (a hypothesis may contain commas itself: `ih : ∀ (k : ℕ), P k, h : k ≤ n ⊢ G`)
+and a `|` is written `\|`. Guide imports are exempt from the banned-name and spoiler checks, since
+they must match the problem's.
 
 ### Checks
 

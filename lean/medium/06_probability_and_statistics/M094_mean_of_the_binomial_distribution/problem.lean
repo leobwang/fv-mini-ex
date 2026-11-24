@@ -3,26 +3,36 @@ GOAL
   The binomial law `Bin(n, p)` (successes in `n` independent coin flips with success probability `p`)
   has mean `n p`. Mathlib does not have this (it is only a `proof_wanted`): unfold the expectation into a
   finite sum and resum it with the binomial theorem.
-
-REFERENCE
-  `binomial n p : Measure ℕ` (notation `Bin(n, p)`), `p : unitInterval` (a real in `[0, 1]`, used as `(p : ℝ)`).
-  `∫ k, (k : ℝ) ∂(binomial n p)` is `E[K]` for `K ~ Bin(n, p)`; `n.choose k` is the binomial coefficient.
-  `•` is scalar multiplication, here ordinary `*` (`smul_eq_mul`).
-  #check integral_binomial         -- ∫ x, f x ∂Bin(n, p) = ∑ k ∈ Iic n, (n.choose k * p ^ k * (1 - p) ^ (n - k)) • f k
-  #check Nat.range_succ_eq_Iic     -- Finset.range (n + 1) = Finset.Iic n
-  #check Finset.sum_range_succ'    -- ∑ k ∈ range (n + 1), f k = ∑ k ∈ range n, f (k + 1) + f 0
-  #check Nat.add_one_mul_choose_eq -- (n + 1) * n.choose k = (n + 1).choose (k + 1) * (k + 1)
-  #check add_pow                   -- (x + y) ^ n = ∑ m ∈ range (n + 1), x ^ m * y ^ (n - m) * n.choose m
-  #check Finset.mul_sum            -- (s f a) : a * ∑ i ∈ s, f i = ∑ i ∈ s, a * f i
-  #check Finset.sum_congr          -- s₁ = s₂ → (∀ x ∈ s₂, f x = g x) → s₁.sum f = s₂.sum g
-  `exact_mod_cast h` moves a ℕ identity `h` into ℝ; `linear_combination e * h` closes a goal equal to `e * h` up to `ring`.
-NOTE: `m + 1 - (k + 1)` is ℕ subtraction; rewrite it to `m - k` with `show … by omega` before using `ring`.
 BANNED: bernsteinPolynomial
+
+GUIDE
+  Entries R1–R17: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace M094
 
+/- SKELETON · binomial_mean
+  1. Integral → finite sum over `range (n + 1)`:                                  R1 → R2
+  2. Split `n`:                                                                  R3
+       zero:   one term, `k = 0`, worth 0:                                       simp
+       succ m: steps 3–6
+  3. Peel off the `k = 0` term and delete it (one `simp only` with both):        R4, then R5 + R6
+  4. BEFORE resumming, prove the termwise identity for every `k ∈ range (m + 1)`:
+       key : (summand of the goal, copied with its casts)
+               = ↑(m + 1) * ↑p * (↑p ^ k * (1 - ↑p) ^ (m - k) * ↑(m.choose k))
+     its proof:                                                                  have key … := by, R7
+       a. absorption identity cast to ℝ:
+            h' : ↑(m + 1) * ↑(m.choose k) = ↑((m + 1).choose (k + 1)) * ↑(k + 1)   R8 → R9
+       b. `m + 1 - (k + 1)` → `m - k`:                                           R10
+       c. close with a multiple of `h'.symm`:                                    R11
+  5. Rewrite the sum with key, pull out `↑(m + 1) * ↑p`, collapse the
+     binomial sum `∑ ↑p ^ k * (1 - ↑p) ^ (m - k) * ↑(m.choose k)`:              R12 → R13 → R14
+  6. `↑p + (1 - ↑p)` → `1`, `1 ^ m` → `1`, `x * 1` → `x`:                         R15 → R16 → R17
+-/
 -- BEGIN SPEC
 open MeasureTheory ProbabilityTheory
 
@@ -34,11 +44,14 @@ theorem binomial_mean (n : ℕ) (p : unitInterval) :
 end M094
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. After `integral_binomial`, the goal is `∑ k ≤ n, C(n,k) p^k (1-p)^(n-k) k = n p`. The `k = 0` term
-    vanishes, and `k C(n,k) = n C(n-1,k-1)` turns the rest into `n p` times a binomial expansion of `(p + (1 - p))^(n-1)`.
-H2. `rw [integral_binomial, ← Nat.range_succ_eq_Iic]`, `cases n` (`zero` is `simp`), and for `m + 1` split off
-    `k = 0` with `Finset.sum_range_succ'`. Prove termwise
-    `C(m+1,k+1) p^(k+1) (1-p)^(m-k) (k+1) = (m+1) p (p^k (1-p)^(m-k) C(m,k))`, then `Finset.sum_congr`.
-H3. The termwise step: cast `Nat.add_one_mul_choose_eq m k` to ℝ and `linear_combination p ^ (k + 1) * (1 - p) ^ (m - k) * h'.symm`;
-    the end: `rw [Finset.sum_congr rfl key, ← Finset.mul_sum, ← add_pow, add_sub_cancel, one_pow, mul_one]`.
+H1. `Bin(n, p)` lives on `{0, …, n}`, so the expectation is a finite sum (R1). From there it is the textbook
+    proof: the `k = 0` term vanishes, `k C(n,k) = n C(n-1,k-1)` (R8, shifted to avoid ℕ subtraction), and what
+    is left is `n p` times the binomial expansion of `(p + (1 - p))^(n-1)` (R14).
+H2. `rw [integral_binomial, ← Nat.range_succ_eq_Iic]`, `cases n` (`zero` is `simp`); for `m + 1`,
+    `rw [Finset.sum_range_succ']` and `simp only [smul_eq_mul, Nat.cast_zero, mul_zero, add_zero]`. Prove termwise
+    `C(m+1,k+1) p^(k+1) (1-p)^(m+1-(k+1)) (k+1) = (m+1) p (p^k (1-p)^(m-k) C(m,k))` as `key`, then resum
+    with `Finset.sum_congr rfl key`, `← Finset.mul_sum`, `← add_pow`.
+H3. Inside `key`: `h' := by exact_mod_cast Nat.add_one_mul_choose_eq m k`, `rw [show m + 1 - (k + 1) = m - k by omega]`,
+    `linear_combination (p : ℝ) ^ (k + 1) * (1 - p) ^ (m - k) * h'.symm`.
+    The end: `rw [Finset.sum_congr rfl key, ← Finset.mul_sum, ← add_pow, add_sub_cancel, one_pow, mul_one]`.
 -/

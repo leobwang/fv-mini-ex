@@ -4,15 +4,11 @@ GOAL
   spatial axis `i`. Show its time-time entry `Λ⁰₀ = (boost i β hβ).1 (Sum.inl 0) (Sum.inl 0)` is `≥ 1`
   (that entry is the Lorentz factor `γ β = 1 / √(1 - β ^ 2)`: moving clocks never run fast).
 
-REFERENCE
-  -- `(boost i β hβ).1 : Matrix (Fin 1 ⊕ Fin d) (Fin 1 ⊕ Fin d) ℝ`; `Sum.inl 0` is time, `Sum.inr i` is space
-  #check LorentzGroup.boost_inl_0_inl_0  -- (boost i β hβ).1 (inl 0) (inl 0) = γ β
-  #check LorentzGroup.γ     -- γ β = 1 / √(1 - β ^ 2); `unfold γ` exposes it.  `√x` is `Real.sqrt x`
-  #check abs_lt             -- |a| < b ↔ -b < a ∧ a < b
-  #check Real.sqrt_le_one   -- √x ≤ 1 ↔ x ≤ 1
-  #check Real.sqrt_pos      -- 0 < √x ↔ 0 < x
-  #check one_le_div         -- 0 < b → (1 ≤ a / b ↔ b ≤ a)
-  example (x : ℝ) (h : -1 < x ∧ x < 1) : x ^ 2 < 1 := by nlinarith [h.1, h.2]
+GUIDE
+  Entries R1–R8: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.Relativity.LorentzGroup.Boosts.Basic
 
@@ -20,6 +16,14 @@ open LorentzGroup
 
 namespace M174
 
+/- SKELETON · one_le_gamma
+  1. Name the matrix entry, then expose the definition:                    R1, R2
+       goal becomes  1 ≤ 1 / √(1 - β ^ 2)
+  2. Prove the radicand is positive, as a `have`:                           R3 inside R5
+       h1 : 0 < 1 - β ^ 2
+  3. `1 ≤ 1 / s` → `s ≤ 1`, with the positivity of `s = √(1 - β ^ 2)`:      R6 inside R7
+  4. `√(1 - β ^ 2) ≤ 1` → `1 - β ^ 2 ≤ 1`, then arithmetic with `0 ≤ β ^ 2`: R8, then R4 inside R5
+-/
 -- BEGIN SPEC
 theorem one_le_gamma {d : ℕ} (i : Fin d) (β : ℝ) (hβ : |β| < 1) :
     1 ≤ (boost i β hβ).1 (Sum.inl 0) (Sum.inl 0) :=
@@ -29,9 +33,12 @@ theorem one_le_gamma {d : ℕ} (i : Fin d) (β : ℝ) (hβ : |β| < 1) :
 end M174
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. First turn the matrix entry into `γ β` (find the physlib lemma named after the entry). Then
-    `1 ≤ 1 / s` holds exactly when `0 < s ≤ 1`; here `s = √(1 - β ^ 2)`.
-H2. Get `h1 : 0 < 1 - β ^ 2` from `abs_lt.mp hβ` with `nlinarith`; the square root of a number in
-    `(0, 1]` lies in `(0, 1]`.
-H3. `rw [boost_inl_0_inl_0]; unfold γ`, then the key step is `rw [one_le_div (Real.sqrt_pos.mpr h1)]`.
+H1. First turn the matrix entry into a real number: physlib names the time-time entry of a boost
+    (`boost_inl_0_inl_0`), and `γ` unfolds to `1 / √(1 - β ^ 2)`. Then `1 ≤ 1 / s` holds exactly when
+    `0 < s ≤ 1`.
+H2. Rewrite the entry to `γ β` and unfold it (R1, R2). Prove `h1 : 0 < 1 - β ^ 2` from both halves of
+    `abs_lt.mp hβ` with `nlinarith` (R3, R5). Use `h1`, through `Real.sqrt_pos`, as the premise of
+    `one_le_div` (R6, R7); finish `√(1 - β ^ 2) ≤ 1` with `Real.sqrt_le_one` and `sq_nonneg β` (R8, R4, R5).
+H3. `rw [boost_inl_0_inl_0]; unfold γ`, then the key step is `rw [one_le_div (Real.sqrt_pos.mpr h1)]`,
+    which leaves `√(1 - β ^ 2) ≤ 1`.
 -/

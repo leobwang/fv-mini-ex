@@ -9,15 +9,22 @@ guide.lean and cheatsheet.md. For every folder (or only the IDs given):
   * guide.lean compiles with no errors, warnings or `sorry`;
   * every inline code span containing `⊢` in a cheatsheet table row (cells such as
     `i j : Fin 2 ⊢ M i j = N i j`) matches one goal Lean reaches in guide.lean: the text after `⊢`
-    equals that goal, and each hypothesis written before `⊢` (separated by `, `) is one of that
-    goal's hypothesis lines; every non-blank line in a ```lean-goal block is a goal Lean reaches;
+    equals that goal, and each hypothesis written before `⊢` is one of that goal's hypothesis lines.
+    Hypotheses are separated by `, ` followed by the next hypothesis's `names :`, so a hypothesis
+    may itself contain commas (`ih : ∀ (k : ℕ), P k, h : k ≤ n ⊢ …`); write a `|` inside a table
+    cell as `\|` (GFM renders it as `|`). Every non-blank line in a ```lean-goal block is a goal Lean
+    reaches;
   * guide.lean uses none of the problem's BANNED names (same matching as ./check);
   * guide.lean copies no line of the problem's spec regions (no spoilers: the guide teaches on
     other objects).
+`import` lines are exempt from the last two checks: a guide must carry the problem's imports, even
+when the problem's spec freezes them and its BANNED line forbids adding any.
 
 States are read without changing guide.lean: a temporary copy gets `trace_state` before the first
 tactic of every multi-line `:= by` proof and after each top-level tactic, and is compiled with
-`lake env lean --json`. Those are the states the infoview shows.
+`lake env lean --json`. Those are the states the infoview shows. A line at the proof's indentation
+that starts with `|` or `<;>` continues the tactic above it (`induction n with` and its
+alternatives, `cases h <;> simp`), so no `trace_state` goes in between.
 
     tools/guide_sync.py                 # every folder
     tools/guide_sync.py M126 E003       # only these IDs
@@ -44,6 +51,7 @@ GOAL_BLOCK = re.compile(r"^```lean-goal\n(.*?)^```", re.S | re.M)
 CODE_SPAN = re.compile(r"`([^`]*⊢[^`]*)`")
 DECL = re.compile(r"^(example|theorem|lemma)\b")
 SPEC_THEOREM = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)*(?:private\s+|protected\s+)*(theorem|lemma)\s+\S+")
+IMPORT = re.compile(r"^\s*import\s")
 MIN_SPOILER_LEN = 30  # spec lines shorter than this (`| 0 => 0`, `end Foo`) are too generic to flag
 
 
@@ -74,7 +82,8 @@ def instrument(src: str) -> str:
         while i < len(lines) and lines[i].strip() and indent(lines[i]) >= base:
             out.append(lines[i])
             nxt = lines[i + 1] if i + 1 < len(lines) else ""
-            if not (nxt.strip() and indent(nxt) > base):  # end of this tactic (and its nested block)
+            continues = nxt.strip() and (indent(nxt) > base or nxt.lstrip().startswith(("|", "<;>")))
+            if not continues:  # end of this tactic (and its nested block)
                 out.append(pad + "trace_state")
             i += 1
     return "\n".join(out)
@@ -110,9 +119,25 @@ def goals_of(msgs: list[dict]) -> list[tuple[set[str], str]]:
     return goals
 
 
+HYP_START = re.compile(r"[^\s:,()\[\]{}⟨⟩]+(?: [^\s:,()\[\]{}⟨⟩]+)* : ")
+OPEN, CLOSE = "([{⟨", ")]}⟩"
+
+
+def split_hyps(left: str) -> list[str]:
+    """Split `h : A, x y : B` into hypotheses: at `, ` outside brackets and before `names : `."""
+    out, depth, start = [], 0, 0
+    for k, ch in enumerate(left):
+        depth += (ch in OPEN) - (ch in CLOSE)
+        if depth == 0 and left.startswith(", ", k) and HYP_START.match(left, k + 2):
+            out.append(left[start:k])
+            start = k + 2
+    out.append(left[start:])
+    return [h.strip() for h in out if h.strip()]
+
+
 def check_span(span: str, goals) -> bool:
-    left, _, right = span.partition("⊢")
-    want_hyps = [h.strip() for h in left.split(", ") if h.strip()]
+    left, _, right = span.replace("\\|", "|").partition("⊢")
+    want_hyps = split_hyps(left)
     goal = right.strip()
     return any(g == goal and all(h in hs for h in want_hyps) for hs, g in goals)
 
@@ -148,6 +173,8 @@ def spoiler_issues(problem: str, guide: str) -> list[str]:
     out = []
     for _, region in check.spec_regions(problem):
         for line in region.splitlines():
+            if IMPORT.match(line):
+                continue
             n = norm(line)
             if len(n) >= MIN_SPOILER_LEN and n in code:
                 out.append(f"guide.lean copies a spec line of problem.lean: {n}")
@@ -168,7 +195,8 @@ def check_folder(folder: Path, frozen: dict) -> list[str]:
     guide = (folder / "guide.lean").read_text()
     pid = re.match(r"([EMH]\d{2,3})_", folder.name)[1]
     banned = frozen.get(pid, {}).get("banned") or check.banned_names(problem)
-    issues += [f"guide.lean {h}" for h in check.banned_hits(guide, check.LANGS["lean"], banned)]
+    no_imports = "\n".join("" if IMPORT.match(l) else l for l in guide.split("\n"))
+    issues += [f"guide.lean {h}" for h in check.banned_hits(no_imports, check.LANGS["lean"], banned)]
     issues += spoiler_issues(problem, guide)
     if re.search(r"(?<![\w.])sorry(?![\w'])", check.strip_comments(guide, check.LANGS["lean"])):
         issues.append("guide.lean contains sorry")

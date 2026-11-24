@@ -4,17 +4,11 @@ GOAL
   A renaming `ρ : Nat → Nat` sends free `var n` to `var (ρ n)`; a parallel substitution `σ : Nat → Tm`
   sends it to `σ n`. Prove preservation (`Step` keeps the type) and progress (a closed typed term is a value or steps).
 
-REFERENCE
-  example : H026.Ctx.cons .base (fun _ => none) 0 = some .base := rfl   -- contexts are functions
-  example : H026.subst (H026.beta (.var 7)) (.app (.var 0) (.var 1)) = .app (.var 7) (.var 0) := rfl
-  example : H026.rename Nat.succ (.lam .base (.var 1)) = .lam .base (.var 2) := rfl   -- `upRen` skips index 0
-  -- The context changes under `lam`, so: `induction h generalizing Δ ρ with | var hn => .. | lam _ ih => ..`
-  -- `intro n A hn; cases n with | zero => .. | succ n => ..` splits on index 0 vs n + 1.
-  -- Named arguments fix an implicit: `rename_typing (ρ := Nat.succ) (fun _ _ h => h) ht`.
-  -- Inversion: `cases h with | app h1 h2 => ..` on `h : HasType Γ (.app t u) A`.
-  -- `induction h` needs variable indices: `generalize hΓ : (fun _ => none : Ctx) = Γ at h` first.
-  -- `rcases h with hv | ⟨t', ht'⟩` splits `Value t ∨ ∃ t', Step t t'`.
-NOTE: Do not leave search tactics (`exact?`, `apply?`, `try?`) in the file.
+GUIDE
+  Entries R1–R14: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace H026
@@ -79,6 +73,17 @@ inductive Step : Tm → Tm → Prop
   | appR {v u u' : Tm} : Value v → Step u u' → Step (.app v u) (.app v u')
 -- END SPEC
 
+/- SKELETON · rename_typing   (milestone 1: prove first; subst_typing uses it with ρ := Nat.succ)
+  1. Induct on the derivation `h`, generalizing the target context and the renaming,
+     so the IH works under `lam` (where they are `Ctx.cons A Δ` and `upRen ρ`):
+       induction h generalizing Δ ρ with | var hn => … | lam _ ih => … | app _ _ ih1 ih2 => …   R1
+     Each goal shows `rename ρ (Tm.var n✝)` etc.; it computes to the rule's shape   R5
+  2. var: the var rule applied to `hρ`                                             R2
+  3. lam: the lam rule applied to the IH; the IH's premise (lifted `hρ`) is left   R3
+       intro n A hn, then index 0 vs n + 1                                         R4
+       both cases are `hn` / `hρ n A hn` once Ctx.cons and upRen compute           R5
+  4. app: the app rule applied to both IHs, each fed `hρ`                          R2
+-/
 -- MILESTONE (optional: change or delete)
 theorem rename_typing {Γ Δ : Ctx} {ρ : Nat → Nat} (hρ : ∀ n A, Γ n = some A → Δ (ρ n) = some A)
     {t : Tm} {A : Ty} (h : HasType Γ t A) : HasType Δ (rename ρ t) A := by
@@ -92,6 +97,17 @@ theorem rename_typing {Γ Δ : Ctx} {ρ : Nat → Nat} (hρ : ∀ n A, Γ n = so
     | succ n => exact hρ n A hn
   | app _ _ ih1 ih2 => exact .app (ih1 hρ) (ih2 hρ)
 
+/- SKELETON · subst_typing   (milestone 2: uses rename_typing; preservation uses it)
+  1. The same induction as rename_typing, generalizing Δ σ                         R1
+  2. var: `hσ` itself (`subst σ (Tm.var n)` computes to `σ n`)                    R5
+  3. lam: the lam rule applied to the IH, the lifted `hσ` left as the goal         R3
+       intro n A hn, then index 0 vs n + 1                                         R4
+       index 0: the var rule on `hn` (`up σ 0` is `Tm.var 0`, `Ctx.cons A✝ _ 0`
+       is `some A✝` in both contexts)                                            R2, R5
+       index n + 1: `up σ (n + 1)` computes to `rename Nat.succ (σ n)`, so use
+       rename_typing with ρ fixed to Nat.succ; its hypothesis is `fun _ _ h => h`  R5, R6
+  4. app: the app rule on both IHs fed `hσ`                                        R2
+-/
 -- MILESTONE (optional: change or delete)
 theorem subst_typing {Γ Δ : Ctx} {σ : Nat → Tm} (hσ : ∀ n A, Γ n = some A → HasType Δ (σ n) A)
     {t : Tm} {A : Ty} (h : HasType Γ t A) : HasType Δ (subst σ t) A := by
@@ -106,6 +122,11 @@ theorem subst_typing {Γ Δ : Ctx} {σ : Nat → Tm} (hσ : ∀ n A, Γ n = some
     | succ n => exact rename_typing (ρ := Nat.succ) (fun _ _ h => h) (hσ n A hn)
   | app _ _ ih1 ih2 => exact .app (ih1 hσ) (ih2 hσ)
 
+/- SKELETON · value_arr   (milestone 3: canonical forms; progress uses it)
+  1. Take `hv` apart: `v` becomes `Tm.lam _ _`                                     R7
+  2. Invert `h`: only the lam rule fits, and it makes the binder type `A`         R8
+  3. Close `∃ t, Tm.lam A t✝ = Tm.lam A t` with a witness and `rfl`               ⟨_, rfl⟩
+-/
 -- MILESTONE (optional: change or delete)
 /-- Canonical forms: a value of arrow type is a `lam`. -/
 theorem value_arr {Γ : Ctx} {v : Tm} {A B : Ty} (hv : Value v) (h : HasType Γ v (.arr A B)) :
@@ -113,6 +134,16 @@ theorem value_arr {Γ : Ctx} {v : Tm} {A B : Ty} (hv : Value v) (h : HasType Γ 
   cases hv with
   | lam => cases h; exact ⟨_, rfl⟩
 
+/- SKELETON · preservation   (uses milestone subst_typing)
+  1. Induct on the step `hs`, generalizing `A` (`h` is carried into each IH)       R1
+  2. beta: invert `h` (app rule), then its function part (lam rule), to get
+       hb : HasType (Ctx.cons A✝ Γ) t✝ A                                          R8, R8
+     apply subst_typing to `hb`, leaving its hypothesis for `beta v✝` as the goal R3
+     intro n B hn, then index 0 vs n + 1                                           R4
+       index 0: `hn` computes to `some A✝ = some B`; unify, then `h2`              R9, R5
+       index n + 1: the var rule on `hn`                                           R2, R5
+  3. appL, appR: invert `h` (app rule), rebuild with the app rule and the IH       R8, R2
+-/
 -- BEGIN SPEC
 theorem preservation {Γ : Ctx} {t t' : Tm} {A : Ty} (h : HasType Γ t A) (hs : Step t t') :
     HasType Γ t' A :=
@@ -132,6 +163,17 @@ theorem preservation {Γ : Ctx} {t t' : Tm} {A : Ty} (h : HasType Γ t A) (hs : 
     | appL _ ih => cases h with | app h1 h2 => exact .app (ih h1) h2
     | appR _ _ ih => cases h with | app h1 h2 => exact .app h1 (ih h2)
 
+/- SKELETON · progress   (uses milestone value_arr)
+  1. Make the empty context a variable:
+       generalize hΓ : (fun _ => none : Ctx) = Γ at h                              R10
+  2. Induct on `h`; every IH now needs `hΓ`                                        R11
+  3. var: substitute `hΓ`; then `hn : (fun x => none) n✝ = some A✝` is impossible R12, R13
+  4. lam: a value, `.inl .lam`                                                     R2
+  5. app (name the function's typing, e.g. `| app h1 _ ih1 ih2`):
+     split `ih1 hΓ` (value or step); if a value, split `ih2 hΓ`                   rcases
+       both values: value_arr on `h1` turns the left part into a lam, then beta   R14, R2
+       value, right part steps: appR;  left part steps: appL                      R2
+-/
 -- BEGIN SPEC
 theorem progress {t : Tm} {A : Ty} (h : HasType (fun _ => none) t A) :
     Value t ∨ ∃ t', Step t t' :=
@@ -152,7 +194,14 @@ theorem progress {t : Tm} {A : Ty} (h : HasType (fun _ => none) t A) :
 end H026
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Preservation's only real case is `beta`: the body `t` is typed in `Γ.cons A`, and `subst (beta v)` must turn that into a typing in `Γ`. That is a substitution lemma, and pushing a substitution under a `lam` (`up σ`) needs a renaming lemma for `rename Nat.succ`.
-H2. Both lemmas: induction on the typing derivation, generalizing the target context and the renaming/substitution. In the `lam` case prove the lifted hypothesis by `cases n`. Preservation: induction on the step generalizing `A`, inverting the typing with `cases`. Progress: generalize the empty context, induction on typing; the `var` case is impossible.
-H3. `subst_typing`, `lam` case, index `n + 1`: `rename_typing (ρ := Nat.succ) (fun _ _ h => h) (hσ n A hn)`. Preservation, `beta` case: `cases h with | app h1 h2 => cases h1 with | lam hb => exact subst_typing (fun n B hn => ..) hb` with `n = 0 ↦ h2`, `n + 1 ↦ .var hn`.
+H1. Preservation's only real case is `beta`: the body `t` is typed in `Ctx.cons A Γ`, and `subst (beta v)`
+    must turn that into a typing in `Γ`. That is `subst_typing`; pushing a substitution under a `lam`
+    (`up σ`) needs `rename_typing` for `rename Nat.succ`. Progress needs canonical forms (`value_arr`).
+H2. Both milestone lemmas: `induction h generalizing Δ ρ` (resp. `Δ σ`); in the `lam` case
+    `refine .lam (ih ?_)`, then `intro n A hn; cases n`. Preservation: `induction hs generalizing A`,
+    invert `h` with `cases`. Progress: `generalize` the empty context, `induction h`; `var` is impossible.
+H3. `subst_typing`, `lam`, index `n + 1`: `exact rename_typing (ρ := Nat.succ) (fun _ _ h => h) (hσ n A hn)`.
+    Preservation, `beta`: `cases h with | app h1 h2 => cases h1 with | lam hb => refine subst_typing ?_ hb`,
+    then index `0 ↦ cases hn; exact h2`, `n + 1 ↦ exact .var hn`.
+    Progress: `generalize hΓ : (fun _ => none : Ctx) = Γ at h`; in `app`, `obtain ⟨_, rfl⟩ := value_arr hv1 h1`.
 -/

@@ -2,16 +2,13 @@
 GOAL
   physlib's `twoState E₀ E₁ : CanonicalEnsemble (Fin 2)` is a two-level system: state `0` has energy
   `E₀`, state `1` has energy `E₁`. With energies `0` and `ε`, show `Z = 1 + e^{-βε}`.
-
-REFERENCE
-  #check CanonicalEnsemble.partitionFunction_of_fintype  -- 𝓒.partitionFunction T = ∑ i, Real.exp (-↑T.β * 𝓒.energy i)
-  #check CanonicalEnsemble.twoState_energy_fst  -- (twoState E₀ E₁).energy 0 = E₀    (and `_snd`: energy 1 = E₁)
-  #check Fin.sum_univ_two   -- ∑ i, f i = f 0 + f 1    (a sum over `Fin 2`)
-  #check Real.exp_zero      -- Real.exp 0 = 1
-  `T.β : ℝ≥0` is the inverse temperature 1/(k_B T) and `↑T.β` its cast to ℝ. `partitionFunction_of_fintype`
-  needs `[𝓒.IsFinite]` (finite states, counting measure); physlib's instance for `twoState` is found
-  automatically, so never name it.
 BANNED: twoState_partitionFunction_apply, twoState_partitionFunction_apply_eq_cosh
+
+GUIDE
+  Entries R1–R6: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.StatisticalMechanics.CanonicalEnsemble.TwoState
 
@@ -19,6 +16,14 @@ open CanonicalEnsemble
 
 namespace E116
 
+/- SKELETON · twoState_Z
+  1. `Z` → the finite sum `∑ i, Real.exp (-↑T.β * (twoState 0 ε).energy i)`:  R1
+  2. The sum over `Fin 2` → its terms at `0` and `1`:                       R2
+  3. Plug in the two energies (only after step 2: R3, R4 need `energy 0`,
+     `energy 1` literally, not `energy i` under the `∑`):                  R3, R4
+  4. `-↑T.β * 0` → `0`, then `Real.exp 0` → `1`; the last `rw` closes the goal: R5 → R6
+  After step 1, a single `simp` also performs steps 2–4.
+-/
 -- BEGIN SPEC
 theorem twoState_Z (ε : ℝ) (T : Temperature) :
     (twoState 0 ε).partitionFunction T = 1 + Real.exp (-(T.β : ℝ) * ε) :=
@@ -28,8 +33,10 @@ theorem twoState_Z (ε : ℝ) (T : Temperature) :
 end E116
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `partitionFunction` is defined through an integral; `partitionFunction_of_fintype` turns it into a finite sum.
-H2. After that rewrite, expand the sum over `Fin 2` and plug in the two energies.
+H1. `partitionFunction` is defined through an integral; do not unfold it (plain `simp` does, and gets
+    stuck). Rewrite it into a finite sum with `partitionFunction_of_fintype` (R1) first.
+H2. After R1: split the sum over `Fin 2` (R2), plug in the energies (R3, R4), then clean up the zero
+    energy (R5, R6). The instances `IsFinite` etc. are found automatically.
 H3. `rw [partitionFunction_of_fintype, Fin.sum_univ_two, twoState_energy_fst, twoState_energy_snd]`,
-    then `mul_zero` and `Real.exp_zero` (or just `simp`).
+    then `mul_zero` and `Real.exp_zero` in the same `rw` (or `rw [partitionFunction_of_fintype]; simp`).
 -/

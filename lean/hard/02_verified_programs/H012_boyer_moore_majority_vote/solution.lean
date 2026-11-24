@@ -4,19 +4,11 @@ GOAL
   Hoare triples and `mvcgen`: if some `m` fills more than half of `xs`, the vote returns `m`. Then
   verify the two-pass checked version, and turn the triple into a plain equation about `.run`.
 
-REFERENCE
-  example : ⦃⌜True⌝⦄ (pure 3 : Id Nat) ⦃⇓ r => ⌜r = 3⌝⦄ := by mvcgen  -- ⦃pre⦄ prog ⦃post⦄; ⌜p⌝ lifts a Prop
-  -- `⇓ r => Q r`: postcondition on the returned value r. `mvcgen [f]` unfolds f, emits the VCs.
-  -- Loop invariant (cur.prefix = elements already processed; st = the `let mut`s, st.1, st.2 in order):
-  --   mvcgen [f] invariants
-  --   · ⇓⟨cur, st⟩ => ⌜... cur.prefix ... st.1 ... st.2 ...⌝
-  -- `mvcgen [f] invariants?` prints a (non-inductive) invariant skeleton showing the shape.
-  -- `invariants | inv1 c _ => ⇓⟨cur, n⟩ => ⌜...c...⌝` names a variable bound earlier (c ← ...).
-  -- `mvcgen [g, f_spec]`: unfold g, use the proved triple `f_spec` where g calls f.
-  #check @Id.of_wp_run_eq   -- prog.run = x → ∀ P, (⊢ₛ wp⟦prog⟧ (⇓ a => ⌜P a⌝)) → P x
-  -- wp⟦prog⟧ Q: weakest precondition; a proved triple ⦃⌜True⌝⦄ prog ⦃Q⦄ fits the `⊢ₛ wp⟦prog⟧ Q` argument.
-  #check @List.count_append -- (l₁ ++ l₂).count a = l₁.count a + l₂.count a  (a grind lemma)
-NOTE: `List.count m xs` is the number of occurrences of `m` in `xs`; "strict majority" is `xs.length < 2 * xs.count m`.
+GUIDE
+  Entries R1–R18: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Std.Tactic.Do
 open Std.Do
@@ -52,6 +44,17 @@ def majorityChecked (xs : List Nat) : Id (Option Nat) := do
     return none
 -- END SPEC
 
+/- SKELETON · MajInv and the milestones (prove these FIRST; `majority_spec` uses all five)
+  1. `MajInv p c k`: two `Nat` inequalities, no division, no `-` (cheatsheet Part 1):
+       every `y ≠ c` occurs in `p` at most half of the `p.length - k` paired slots;
+       `c` occurs at most `k` + half of them.
+  2. majInv_nil:                                          simp [MajInv]   (R1, R2)
+  3. majInv_reset, majInv_match, majInv_cancel, majInv_final, each:
+       unfold the invariant in goal and hypotheses        R8
+       close it (count/length of `p ++ [x]` inside)       R9 (uses R3–R7)
+     They are used in majority_spec as: reset = VC `k = 0`, match = VC `x = cand`,
+     cancel = VC `x ≠ cand`, nil = loop entry, final = loop exit.
+-/
 -- MILESTONE (optional: change or delete)
 /-- The loop invariant of `majority`, after processing the prefix `p` with candidate `c` and counter `k`. -/
 def MajInv (p : List Nat) (c k : Nat) : Prop :=
@@ -79,6 +82,13 @@ theorem majInv_final (xs : List Nat) (c k m : Nat) (h : MajInv xs c k)
     (hm : xs.length < 2 * xs.count m) : c = m := by
   unfold MajInv at *; grind
 
+/- SKELETON · majority_spec
+  1. Prove the six MILESTONE declarations above first.
+  2. Turn the triple into VCs, unfolding `majority`, with the loop invariant
+       `MajInv` of the processed prefix and the two `let mut`s (cand, k)    R11, R12, R13, R14
+  3. Five VCs: three loop branches, entry, exit = reset, match, cancel, nil, final.
+     Close all of them at once with the five milestones                     all_goals, R10
+-/
 -- BEGIN SPEC
 theorem majority_spec (xs : List Nat) :
     ⦃⌜True⌝⦄ majority xs ⦃⇓ r => ⌜∀ m, xs.length < 2 * xs.count m → r = m⌝⦄ :=
@@ -89,6 +99,14 @@ theorem majority_spec (xs : List Nat) :
     -- one VC per branch of the loop body, plus entry and exit: exactly the milestones
     all_goals grind [majInv_nil, majInv_reset, majInv_match, majInv_cancel, majInv_final]
 
+/- SKELETON · majorityChecked_spec
+  1. Turn the triple into VCs, unfolding `majorityChecked` and using the proved
+     `majority_spec` at the call `let c ← majority xs`                      R15
+  2. Invariant of the counting loop: `n` is the count of `c` in the processed
+     prefix. It must name the candidate `c`, so use the labelled form       R16 (R12, R13)
+  3. Four VCs: two loop steps (`x = c`, `x ≠ c`) and two exits (`some c`, `none`);
+     `majority_spec`'s postcondition is in context. Close all at once      all_goals, R9 (R3–R5)
+-/
 -- BEGIN SPEC
 theorem majorityChecked_spec (xs : List Nat) :
     ⦃⌜True⌝⦄ majorityChecked xs ⦃⇓ r => ⌜∀ m, r = some m ↔ xs.length < 2 * xs.count m⌝⦄ :=
@@ -99,6 +117,13 @@ theorem majorityChecked_spec (xs : List Nat) :
     | inv1 c _ => ⇓⟨cur, n⟩ => ⌜n = cur.prefix.count c⌝
     all_goals grind
 
+/- SKELETON · majority_run
+  1. `Id.of_wp_run_eq` with `x := (majority xs).run` (proved by `rfl`) and `P` := the
+     predicate inside `majority_spec`'s postcondition                       R17
+  2. Its `wp` argument is the triple `majority_spec xs`                       R18
+  3. The result is `P (majority xs).run`, a `∀ m, … → …`: apply it to `m` and `hm`
+     (one term, as in guide W2)
+-/
 -- BEGIN SPEC
 theorem majority_run (xs : List Nat) (m : Nat) (hm : xs.length < 2 * xs.count m) :
     (majority xs).run = m :=
@@ -108,13 +133,15 @@ theorem majority_run (xs : List Nat) (m : Nat) (hm : xs.length < 2 * xs.count m)
 end H012
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Read `(cand, k)` as "k copies of cand are still unpaired"; every other element seen so far was
-    cancelled against a different one. The invariant bounds counts in the prefix, not just `cand`.
-H2. Two clauses: every `y ≠ c` is far from a majority of the prefix (even after adding `k`), and `c`
-    itself is not too frequent. Each VC of `mvcgen` is one milestone; prove them by
-    `unfold MajInv at *; grind`, then `mvcgen [majority] invariants · ⇓⟨cur, st⟩ => ⌜MajInv cur.prefix st.1 st.2⌝`
-    and `all_goals grind [majInv_nil, majInv_reset, ...]`.
+H1. Read `(cand, k)` as "k copies of cand are still unpaired"; every other element processed so far was
+    cancelled against a different one. So the invariant bounds the count of EVERY value in the prefix,
+    not just `cand`. Each VC that `mvcgen` produces is exactly one milestone.
+H2. `MajInv` has two clauses: every `y ≠ c` is far from a majority of the prefix (even after adding `k`),
+    and `c` itself is at most half plus `k`. Milestones: `unfold MajInv at *; grind` (`majInv_nil`:
+    `simp [MajInv]`). Then `mvcgen [majority] invariants` with `· ⇓⟨cur, st⟩ => ⌜MajInv cur.prefix st.1 st.2⌝`
+    and `all_goals grind [majInv_nil, majInv_reset, majInv_match, majInv_cancel, majInv_final]`.
+    Checked version: `mvcgen [majorityChecked, majority_spec]` with a labelled counting invariant (R16).
 H3. `MajInv p c k := (∀ y, y ≠ c → 2 * p.count y + k ≤ p.length) ∧ 2 * p.count c ≤ p.length + k`.
-    Checked version: `mvcgen [majorityChecked, majority_spec] invariants | inv1 c _ => ⇓⟨cur, n⟩ => ⌜n = cur.prefix.count c⌝`.
-    `majority_run`: apply `Id.of_wp_run_eq rfl` with `P` := the postcondition of `majority_spec`.
+    Checked: `invariants | inv1 c _ => ⇓⟨cur, n⟩ => ⌜n = cur.prefix.count c⌝`, then `all_goals grind`.
+    `majority_run`: `Id.of_wp_run_eq rfl P (majority_spec xs) m hm`, `P` the postcondition predicate `fun r => …`.
 -/

@@ -4,18 +4,11 @@ GOAL
   and that each eigenstate `ψ_k` is a translation eigenvector with eigenvalue `exp (-i k a)` (Bloch).
   Suggested first step: the helper `translation T (localizedState p) = localizedState (p + 1)`.
 
-REFERENCE
-  #check TightBindingChain.localizedComp_apply_localizedState  -- |m⟩⟨n| |p⟩ = if n = p then |m⟩ else 0
-  #check TightBindingChain.hamiltonian_apply_localizedState    -- H |n⟩ = E0 • |n⟩ - t • (|n + 1⟩ + |n - 1⟩)
-  #check Module.Basis.ext  -- (∀ i, f₁ (b i) = f₂ (b i)) → f₁ = f₂  (linear maps agreeing on a basis)
-  #check OrthonormalBasis.coe_toBasis  -- ⇑b.toBasis = ⇑b ; use `(localizedState (T := T)).toBasis.ext`
-  #check TightBindingChain.quantaWaveNumber_exp_sub_one  -- exp (I k (n-1) a) = exp (I k n a) * exp (-I k a)
-  #check Equiv.sum_comp    -- ∑ i, g (e i) = ∑ i, g i   (reindex a sum by a bijection e)
-  #check Equiv.subRight    -- Equiv.subRight c : x ↦ x - c, a bijection of `Fin T.N`
-  #check map_sum           -- g (∑ x ∈ s, f x) = ∑ x ∈ s, g (f x)  (also `map_smul`, `map_sub`, `map_add`)
-  #check Finset.smul_sum   -- r • ∑ x ∈ s, f x = ∑ x ∈ s, r • f x   (and `smul_smul`)
-NOTE: `n + 1 : Fin T.N` wraps around mod `N` (periodic chain); `f ∘ₗ g` composes linear maps.
-  `|n⟩` is `localizedState n`; `|m⟩⟨n|` is `localizedComp m n : ψ ↦ ⟪|n⟩, ψ⟫ • |m⟩`.
+GUIDE
+  Entries R1–R22: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.CondensedMatter.TightBindingChain.Basic
 
@@ -29,12 +22,42 @@ noncomputable def translation (T : TightBindingChain) : T.HilbertSpace →ₗ[�
   ∑ n : Fin T.N, localizedComp (n + 1) n
 -- END SPEC
 
+/- SKELETON · hamiltonian_comm
+  0. MILESTONE first, above this theorem (not a spec: state and prove it yourself):
+       translation_apply (T) (p : Fin T.N) :
+         translation T (localizedState p) = localizedState (p + 1)
+     proof: unfold `translation`, then                                    R1 → R2 → R3 → R4
+     It is used in step 2 here and in step 1 of `bloch_theorem`.
+  1. Two linear maps are equal if they agree on the basis |m⟩:           R5, then `intro m`
+  2. One `simp only [...]`, with the lemmas for
+       `b.toBasis m` → `|m⟩`,  `(f ∘ₗ g) x` → `f (g x)`                  R6, R7
+       `H |n⟩` → `E0 • |n⟩ - t • (|n + 1⟩ + |n - 1⟩)`                    R8
+       push `translation T` through `-`, `•`, `+`                         R9, R11, R10
+       `translation T |p⟩` → `|p + 1⟩`                                    translation_apply
+       right side's `|m - 1 + 1⟩` → `|m⟩` (put it in the same simp set)   R20
+     Both sides now agree except `|m + 1 - 1⟩` (left) against `|m⟩` (right).
+     Without R20 the right side keeps `|m - 1 + 1⟩` and step 3 does not close the goal.
+  3. `m + 1 - 1 = m` in `Fin T.N` (R20 does not match this shape):        R12
+-/
 -- BEGIN SPEC
 theorem hamiltonian_comm (T : TightBindingChain) :
     T.hamiltonian ∘ₗ translation T = translation T ∘ₗ T.hamiltonian :=
 -- END SPEC
   sorry
 
+/- SKELETON · bloch_theorem
+  1. One `simp only [...]`, with the lemmas for
+       unfold `ψ_k = ∑ n, exp (I k n a) • |n⟩` on both sides              R13
+       push `translation T` into the sum and past the scalar              R14, R11
+       `translation T |n⟩` → `|n + 1⟩`                                    translation_apply (milestone)
+       right side: the scalar into the sum, two scalars merged            R15, R16
+     Goal: ∑ x, e^{ikxa} • |x + 1⟩ = ∑ x, (e^{-ika} * e^{ikxa}) • |x⟩.
+  2. Reindex the left sum by n ↦ n - 1, `c = (1 : Fin T.N)`:              R17
+  3. Compare the two sums term by term:                                   R18
+  4. `(Equiv.subRight 1) n` → `n - 1`, then `n - 1 + 1` → `n`:            R19, R20
+  5. Same vector `|n⟩` on both sides; compare the scalars:                R21
+  6. Split `exp (I k (n - 1) a)`, then commute the product:               R22, then `ring`
+-/
 -- BEGIN SPEC
 theorem bloch_theorem (T : TightBindingChain) (k : T.QuantaWaveNumber) :
     translation T (T.energyEigenstate k) =
@@ -45,13 +68,20 @@ theorem bloch_theorem (T : TightBindingChain) (k : T.QuantaWaveNumber) :
 end M171
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Prove a helper first: `translation T (localizedState p) = localizedState (p + 1)`
-    (unfold `translation`, apply the sum of maps, and collapse the `if`s).
-H2. Commutation: check it on the basis `|m⟩` (`Module.Basis.ext`); both sides become
-    `E0 • |m + 1⟩ - t • (|m + 2⟩ + |m⟩)`. Bloch: push `translation` inside the sum, reindex
-    `n ↦ n - 1` so the sum is over `|n⟩` again, and use `quantaWaveNumber_exp_sub_one` termwise.
-H3. `apply (localizedState (T := T)).toBasis.ext; intro m; simp only [OrthonormalBasis.coe_toBasis,
-    LinearMap.comp_apply, translation_apply, hamiltonian_apply_localizedState, map_sub, map_smul, map_add]`
-    (`translation_apply` = your H1 helper);
-    Bloch: `rw [← (Equiv.subRight (1 : Fin T.N)).sum_comp]` after `simp only [map_sum, map_smul, ...]`.
+H1. Both theorems reduce to one fact about basis vectors: prove the helper
+    `translation T (localizedState p) = localizedState (p + 1)` first (SKELETON step 0).
+    For an equation of linear maps, check it on the basis `|m⟩`; for Bloch, write `ψ_k` as its sum
+    and compare coefficients.
+H2. Commutation: after basis ext and `simp only`, both sides are `E0 • |m + 1⟩ - t • (|m + 2⟩ + |m⟩)`
+    except for the index arithmetic (mod N): the left has `|m + 1 - 1⟩`, the right `|m - 1 + 1⟩`.
+    `sub_add_cancel` fixes the right one, `add_sub_cancel_right` the left one. Bloch: push `translation` into the sum,
+    reindex `n ↦ n - 1` so both sums run over `|n⟩`, then compare termwise with
+    `quantaWaveNumber_exp_sub_one`.
+H3. Helper: `simp [translation, localizedComp_apply_localizedState]`.
+    Commutation: `apply (localizedState (T := T)).toBasis.ext; intro m; simp only [OrthonormalBasis.coe_toBasis,
+    LinearMap.comp_apply, translation_apply, hamiltonian_apply_localizedState, map_sub, map_smul, map_add,
+    sub_add_cancel]`, then `rw [add_sub_cancel_right]`.
+    Bloch: `simp only [TightBindingChain.energyEigenstate, map_sum, map_smul, translation_apply,
+    Finset.smul_sum, smul_smul]`, then `rw [← (Equiv.subRight (1 : Fin T.N)).sum_comp]` and
+    `refine Finset.sum_congr rfl fun n _ => ?_`.
 -/

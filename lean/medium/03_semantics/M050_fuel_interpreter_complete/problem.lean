@@ -4,15 +4,11 @@ GOAL
   Prove completeness: every big-step run `BigStep c s s'` is found by `run` with enough fuel.
   `run_mono` (one more unit of fuel never hurts; M044's exercise) is given.
 
-REFERENCE
-  -- `induction h with | skip => _ | seq h1 h2 ih1 ih2 => _ | whileT hb h1 h2 ih1 ih2 => _ | ...`
-  example (a b : Nat) : a ≤ max a b := Nat.le_max_left a b      -- and `Nat.le_max_right`
-  example (n m : Nat) : n < m ∨ n ≥ m := Nat.lt_or_ge n m
-  example (n m : Nat) (h : n ≤ m + 1) : n ≤ m ∨ n = m + 1 := by omega   -- omega knows max, ≤
-  -- `obtain ⟨n1, h1⟩ := ih1` unpacks `∃ n, run n c s = some s'`
-  -- `simp only [run]` unfolds one step of `run (k + 1) ...`; then `rw [h1]` fires its `match`
-  -- for `.while b c`, also pass `hb`: `simp only [run, hb, if_true]` takes the `then` branch
-  -- `simp [run, hb, h]` evaluates `run (n + 1) (.ite b c1 c2) s` given `hb : beval s b = true`
+GUIDE
+  Entries R1–R14: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M050
@@ -116,10 +112,32 @@ theorem run_mono (n : Nat) (c : Com) (s s' : State) (h : run n c s = some s') :
 -- END SPEC
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · run_mono_le   (MILESTONE: prove it first; run_complete uses it in `seq` and `whileT`)
+  1. Induct on the bound `m`; `hnm : n ≤ m` rides along into the IH:            R1
+  2. zero:  `hnm : n ≤ 0` gives `n = 0`; substitute it, then `h` is the goal:   R2, R3
+  3. succ m  (ih : n ≤ m → run m c s = some s',  hnm : n ≤ m + 1):
+       split on `n < m + 1` or `n ≥ m + 1`:                                     R4
+       n < m + 1:  `run_mono` on top of `ih`, the premise `n ≤ m` by `omega`:   R5 (with R2)
+       n ≥ m + 1:  then `n = m + 1`; substitute it, `h` is the goal:            R2, R3
+-/
 theorem run_mono_le {n m : Nat} {c : Com} {s s' : State} (hnm : n ≤ m) (h : run n c s = some s') :
     run m c s = some s' := by
   sorry
 
+/- SKELETON · run_complete   (uses the milestone `run_mono_le` in steps 5 and 6)
+  1. Induct on the derivation `h`, not on `c`: one case per BigStep rule:          R6
+  2. skip, assign: fuel 1; the run computes:                                       R7
+  3. iteT, iteF (one IH): unpack it; fuel `n + 1`; unfold with `hb` and the IH:   R8, R14
+  4. whileF: fuel 1; unfold with `hb`:                                             R14
+  5. seq (two IHs, fuels n1 n2):
+       unpack both IHs:                                                            R8
+       choose the fuel `max n1 n2 + 1`:                                            refine ⟨_, ?_⟩
+       run one step:                                                               R9
+       lift the first sub-run to fuel `max n1 n2` (run_mono_le):                   R10 → R11
+       lift the second the same way; it closes through the reduced `match`:       R10 → R12
+  6. whileT (two IHs): as seq, but the step also uses `hb` to take the `then`
+     branch:                                                     R8, refine, R9 + R13, R10 → R11, R10 → R12
+-/
 -- BEGIN SPEC
 theorem run_complete {c : Com} {s s' : State} (h : BigStep c s s') : ∃ n, run n c s = some s' :=
 -- END SPEC
@@ -128,11 +146,13 @@ theorem run_complete {c : Com} {s s' : State} (h : BigStep c s s') : ∃ n, run 
 end M050
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Lift `run_mono` from `n + 1` to any `m ≥ n` first. Then induct on the derivation `h`, not on `c`:
-    the `whileT` case needs an IH for the *same* loop, which only the derivation provides.
+H1. Prove the milestone `run_mono_le` first: induction on `m`, iterating `run_mono`. Then induct on the
+    derivation `h`, not on `c`: the `whileT` case needs an IH for the *same* loop, which only the
+    derivation provides.
 H2. `skip`, `assign`, `whileF` need fuel 1. `iteT`/`iteF`: fuel `n + 1` from the IH's `n`. `seq`/`whileT`
     have two IHs with fuels `n1`, `n2`: run both at `max n1 n2` (by `run_mono_le`) and give `max n1 n2 + 1`.
-H3. `run_mono_le`: `induction m`, then `Nat.lt_or_ge n (m + 1)`: either `run_mono _ _ _ _ (ih (by omega))` or
+H3. `run_mono_le`: `induction m`; zero: `have : n = 0 := by omega; subst this`; succ:
+    `rcases Nat.lt_or_ge n (m + 1) with hlt | hge`, then `run_mono _ _ _ _ (ih (by omega))` or
     `n = m + 1`. `seq` case: `refine ⟨max n1 n2 + 1, ?_⟩; simp only [run]; rw [run_mono_le (Nat.le_max_left _ _) h1]`.
-    `whileT` case: same shape, but `simp only [run, hb, if_true]` first to take the `then` branch.
+    `whileT` case: same shape, but `simp only [run, hb, if_true]` to take the `then` branch.
 -/

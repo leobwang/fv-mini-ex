@@ -3,17 +3,11 @@ GOAL
   Use the Gershgorin circle theorem to show that every eigenvalue `μ` of the symmetric matrix `A`
   below lies in `[2, 6]` (so 0 is not an eigenvalue and `A` is invertible).
 
-REFERENCE
-  #check eigenvalue_mem_ball     -- HasEigenvalue (toLin' A) μ → ∃ k, μ ∈ closedBall (A k k) (∑ j ∈ univ.erase k, ‖A k j‖)
-  #check Metric.mem_closedBall   -- y ∈ closedBall x r ↔ dist y x ≤ r
-  #check Real.dist_eq            -- dist x y = |x - y|
-  #check Real.norm_eq_abs        -- ‖r‖ = |r|   (on ℝ the norm in the radius is the absolute value)
-  #check abs_le                  -- |a| ≤ b ↔ -b ≤ a ∧ a ≤ b
-  #check Finset.sum_erase_eq_sub -- a ∈ s → ∑ x ∈ s.erase a, f x = ∑ x ∈ s, f x - f a
-  #check Fin.sum_univ_succ       -- ∑ i : Fin (n + 1), f i = f 0 + ∑ i : Fin n, f i.succ
-  example : (!![4, 1; 1, 4] : Matrix (Fin 2) (Fin 2) ℝ) 0 1 = 1 := rfl  -- `!![…; …]` lists rows; entry `A i j`
-  `fin_cases k` splits `k : Fin 3` into the cases `k = 0, 1, 2`; `simp [A, …] at hk` then evaluates entries.
-NOTE: `Matrix.toLin' A` is `x ↦ A *ᵥ x`; `HasEigenvalue f μ`: some `v ≠ 0` has `f v = μ • v`. `A` is symmetric, so every eigenvalue is real.
+GUIDE
+  Entries R1–R10: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -23,6 +17,17 @@ namespace M120
 def A : Matrix (Fin 3) (Fin 3) ℝ := !![4, 1, 0; 1, 4, 1; 0, 1, 5]
 -- END SPEC
 
+/- SKELETON · eigenvalue_bounds
+  1. Gershgorin: get the row `k` whose disc contains `μ`:                   R1
+       hk : μ ∈ Metric.closedBall (A k k) (∑ j ∈ Finset.univ.erase k, ‖A k j‖)
+  2. Disc → inequality, once, before splitting:                             R2, R3 (one `rw … at hk`)
+       hk : |μ - A k k| ≤ ∑ j ∈ Finset.univ.erase k, ‖A k j‖
+  3. One goal per row, chained with `<;>`:                                  R4
+  4. Evaluate center and radius to numbers in each `hk`
+     (one `simp … at hk`; R6, R7 are automatic, R8 must be named):          R5 → R6 → R7 → R8
+  5. Split `2 ≤ μ ∧ μ ≤ 6`:                                                 constructor
+  6. Each bound from that row's `|μ - c| ≤ r`:                              R9 → R10
+-/
 -- BEGIN SPEC
 theorem eigenvalue_bounds (μ : ℝ) (hμ : Module.End.HasEigenvalue (Matrix.toLin' A) μ) :
     2 ≤ μ ∧ μ ≤ 6 :=
@@ -37,7 +42,12 @@ theorem eigenvalue_bounds (μ : ℝ) (hμ : Module.End.HasEigenvalue (Matrix.toL
 end M120
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Gershgorin hands you one row `k` whose disc (center `A k k`, radius = sum of the other `|A k j|`) contains `μ`.
-H2. `obtain ⟨k, hk⟩ := eigenvalue_mem_ball hμ`, rewrite `hk` to `|μ - A k k| ≤ radius`, then check the three rows separately.
-H3. After `fin_cases k`, `simp [A, …] at hk` with the two sum lemmas from the card leaves the three discs `|μ - 4| ≤ 1`, `|μ - 4| ≤ 2` (maybe unnormalised), `|μ - 5| ≤ 1`; `abs_le` turns each into two linear facts.
+H1. Gershgorin hands you one row `k` whose disc (center `A k k`, radius = the sum of the other `|A k j|`)
+    contains `μ`. Each of the three rows' discs lies inside `[2, 6]`, so check the rows one by one.
+H2. `obtain ⟨k, hk⟩ := eigenvalue_mem_ball hμ`, then `rw [Metric.mem_closedBall, Real.dist_eq] at hk`
+    gives `|μ - A k k| ≤ radius`. Then `fin_cases k`, evaluate `hk` with `simp`, split the goal, and get
+    each bound from `abs_le`.
+H3. `fin_cases k <;> simp [A, Fin.sum_univ_succ] at hk` leaves the three discs `|μ - 4| ≤ 1`,
+    `|μ - 4| ≤ 2` (printed unnormalised as `1 + (4 + 1) - 4`), `|μ - 5| ≤ 1`. After `constructor`, each
+    half is `linarith [abs_le.mp hk]`.
 -/

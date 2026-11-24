@@ -3,17 +3,11 @@ GOAL
   Encode `α|000⟩ + β|111⟩`. Measuring the two parities (syndrome) and flipping the indicated qubit undoes
   any single bit flip; by linearity it also undoes any superposition of such errors ("errors are digitised").
 
-REFERENCE
-  -- `Q3 = Fin 2 × Fin 2 × Fin 2` indexes |abc⟩; a state is `v : Q3 → ℂ`. On `Fin 2`, `+` is XOR: `(1 : Fin 2) + 1 = 0`.
-  #check Fintype.sum_prod_type  -- ∑ x, f x = ∑ x, ∑ y, f (x, y)
-  #check Fin.sum_univ_two       -- ∑ i : Fin 2, f i = f 0 + f 1
-  #check Finset.sum_apply       -- (a) (s) (g) : (∑ c ∈ s, g c) a = ∑ c ∈ s, g c a   (sums of functions)
-  #check Pi.smul_apply          -- (b • x) i = b • x i
-  #check Finset.mul_sum         -- a * ∑ i ∈ s, f i = ∑ i ∈ s, a * f i
-  #check Finset.sum_smul        -- (∑ i ∈ s, r i) • x = ∑ i ∈ s, r i • x
-  #check Finset.sum_comm        -- swap two sums
-  -- `rcases e with _ | e` splits `e : Option (Fin 3)` into `none` / `some e`; `fin_cases e` then splits `e : Fin 3`.
-  example (v w : Fin 2 × Fin 2 → ℂ) (h : ∀ a b, v (a, b) = w (a, b)) : v = w := funext fun ⟨a, b⟩ => h a b
+GUIDE
+  Entries R1–R19: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -49,6 +43,15 @@ def guess (σ : Fin 2 × Fin 2) : Option (Fin 3) :=
 def decode (v : Q3 → ℂ) : Q3 → ℂ := ∑ σ, err (guess σ) (proj σ v)
 -- END SPEC
 
+/- SKELETON · corrects
+  1. Function equation → one label, its three bits named:                   R1
+  2. Split the error: `none` / `some e`, then `e : Fin 3` only where it
+     exists (the `none` goal has no `e`):                                   R2, R4 (fin_cases: R3)
+  3. In every goal split the three bits (`<;>`, TACTIC_STATES):             fin_cases a, b, c
+  4. Close each of the 4 × 8 = 32 cases with ONE `simp`: all seven
+     definition names plus the two sum lemmas, so that the sum over the
+     4 syndromes σ is expanded (simp applies R7–R9 by itself):             R5, R6
+-/
 -- BEGIN SPEC
 theorem corrects (α β : ℂ) (e : Option (Fin 3)) : decode (err e (enc α β)) = enc α β :=
 -- END SPEC
@@ -69,6 +72,19 @@ theorem decode_lin {ι : Type} [Fintype ι] (c : ι → ℂ) (v : ι → Q3 → 
   refine Finset.sum_congr rfl fun σ _ => ?_
   split_ifs <;> simp
 
+/- SKELETON · corrects_superposition
+  1. MILESTONE first: a helper lemma placed above this SKELETON, outside the spec regions:
+       decode_lin {ι : Type} [Fintype ι] (c : ι → ℂ) (v : ι → Q3 → ℂ) :
+         decode (∑ e, c e • v e) = ∑ e, c e • decode (v e)
+     a. pointwise:                                                          R1 (as `funext p`)
+     b. unfold decode, err, proj and push the point inside the sums:        R7, R10, R11
+     c. scalar into the inner sum and through the `if`:                     R13 with R12, R14, R15
+     d. swap the two sums:                                                  R16
+     e. compare term by term, split the `if`, then `simp`:                  R17, R18
+  2. The theorem: rewrite with the milestone, then every term with
+     `corrects` (the `e` is bound by `∑`, so not plain `rw`):              rw [decode_lin], R13
+  3. Fold the scalar sum on the right-hand side:                            R19
+-/
 -- BEGIN SPEC
 theorem corrects_superposition (α β : ℂ) (c : Option (Fin 3) → ℂ) :
     decode (∑ e, c e • err e (enc α β)) = (∑ e, c e) • enc α β :=
@@ -81,14 +97,17 @@ theorem corrects_superposition (α β : ℂ) (c : Option (Fin 3) → ℂ) :
 end M148
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `corrects` is a finite check: 4 errors × 8 basis labels. `corrects_superposition` should not be
-    brute-forced: show that `decode` is linear and reuse `corrects` for each term.
-H2. `corrects`: `funext ⟨a, b, c⟩`, split `e` (`none` or `some e`, then `fin_cases e`), split `a b c`, and `simp`
-    with all definitions plus `Fintype.sum_prod_type, Fin.sum_univ_two` (the sum over `σ` has 4 terms).
-    Superposition: a helper `decode (∑ e, c e • v e) = ∑ e, c e • decode (v e)`, proved pointwise.
-H3. `corrects` skeleton: `rcases e with _ | e; all_goals (try fin_cases e)`, then split the basis label; unfold
-    `decode, err, flip, enc, proj, synd, guess`.
-    Helper: `theorem decode_lin {ι : Type} [Fintype ι] (c : ι → ℂ) (v : ι → Q3 → ℂ) :
-       decode (∑ e, c e • v e) = ∑ e, c e • decode (v e)`
-    (pointwise: unfold, distribute the scalar into the sum, swap the two sums). Then rewrite each term with `corrects`.
+H1. `corrects` is a finite check: 4 errors × 8 basis labels, each closed by evaluation. Do not brute-force
+    `corrects_superposition` (the `c e` are arbitrary): prove that `decode` is linear (milestone
+    `decode_lin` in the SKELETON) and reuse `corrects` for each term.
+H2. `corrects`: `funext ⟨a, b, c⟩`, `rcases e with _ | e`, `all_goals (try fin_cases e)`, then split
+    `a b c` and `simp` with all seven definitions plus `Fintype.sum_prod_type, Fin.sum_univ_two`.
+    `decode_lin`: `funext p`; unfold with `Finset.sum_apply, Pi.smul_apply, smul_eq_mul`; distribute with
+    `simp_rw`; swap the sums with `Finset.sum_comm`; compare termwise with `Finset.sum_congr`.
+H3. `corrects`, after the splits of `e`:
+      `all_goals (fin_cases a <;> fin_cases b <;> fin_cases c <;>
+         simp [decode, err, flip, enc, proj, synd, guess, Fintype.sum_prod_type, Fin.sum_univ_two])`
+    `decode_lin`, after unfolding: `simp_rw [Finset.mul_sum, mul_ite, mul_zero]`, `rw [Finset.sum_comm]`,
+    `refine Finset.sum_congr rfl fun σ _ => ?_`, `split_ifs <;> simp`.
+    `corrects_superposition`: `rw [decode_lin]`, then `simp_rw [corrects]`, then `Finset.sum_smul`.
 -/

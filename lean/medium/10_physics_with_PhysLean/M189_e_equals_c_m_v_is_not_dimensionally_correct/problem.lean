@@ -4,17 +4,11 @@ GOAL
   energy) is not dimensionally correct: find unit systems and values where it holds in one system but fails
   after converting. (For `c = 0` it is correct, so `hc` matters.)
 
-REFERENCE
-  `WithDim d ℝ`: a real number tagged with dimension `d`; `⟨a⟩ : WithDim d ℝ` has value `a`.
-  `M𝓭 L𝓭 T𝓭` (mass, length, time) are plain `def`s of `Dimension`s; unfold them to see their exponents.
-  `SI`; `SIPrimed`: SI with the length, time, mass units scaled by 2, 3, 5 (charge 7, temperature 11).
-  #check isDimensionallyCorrect_fun_iff -- IsDimensionallyCorrect f ↔ ∀ u1 u2 m, scaleUnit u1 u2 (f (scaleUnit u2 u1 m)) = f m
-  #check UnitDependent.scaleUnit_apply_fun -- scaleUnit u1 u2 f m1 = scaleUnit u1 u2 (f (scaleUnit u2 u1 m1))
-  #check WithDim.scaleUnit_val          -- (scaleUnit u1 u2 m).val = (u1.dimScale u2) d • m.val
-  #check LTMCTUnitChoices.dimScale_apply -- (u1.dimScale u2) d = (u1.length / u2.length) ^ d.length * ...
-  #check NNReal.smul_def                -- c • x = (c : ℝ) • x   for `c : NNReal`
-  #check not_forall                     -- (¬ ∀ x, p x) ↔ ∃ x, ¬ p x
-  `use a, b` supplies the first two witnesses of an `∃ x y ..., P x y ...` goal.
+GUIDE
+  Entries R1–R18: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.Units.WithDim.Speed
 
@@ -29,6 +23,16 @@ def Wrong (c : ℝ) (m : WithDim M𝓭 ℝ) (v : WithDim (L𝓭 * T𝓭⁻¹) �
   E.1 = c * m.1 * v.1
 -- END SPEC
 
+/- SKELETON · wrong_not_isDimensionallyCorrect
+  1. Unfold "dimensionally correct" and push `¬` inside, all in ONE `simp only [...]`:  R1, R2, R3, R4
+       the goal becomes  ∃ u1 u2 m v E, ¬ (relation after converting = relation before)
+  2. Give the two unit systems, then values `m, v, E` that make `E = c·m·v` TRUE:      R5, R6
+  3. Expose the relation's body:                                                     R7
+  4. Compute the converted numbers with one `norm_num [...]` that names R9, R11, R13;
+     it applies R8, R10, R12, R14, R15 by itself:                                    R8 → R9 → R10 → R11 → R12 → R13 → R14 → R15
+       left:  ¬ (a * c = c * b)  for two numerals a ≠ b
+  5. Turn that into `c = 0` and close it with hc:                                     R16 → R17 → R18
+-/
 -- BEGIN SPEC
 theorem wrong_not_isDimensionallyCorrect (c : ℝ) (hc : c ≠ 0) :
     ¬ IsDimensionallyCorrect (Wrong c) :=
@@ -39,11 +43,14 @@ end M189
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. Unfold "dimensionally correct" into a statement about all unit systems and all arguments, and push
-    the negation inside: you must produce two unit systems and a concrete `m, v, E` that satisfy `E = c m v`.
-H2. `m = v = 1`, `E = c` satisfies the relation. A unit change multiplies `E` by `s_M s_L² / s_T²` but `c m v` by
-    `s_M s_L / s_T` (`s_M, s_L, s_T` = the mass, length, time factors); between `SI` and `SIPrimed`,
-    `s_L / s_T ≠ 1`, so the rescaled equation says `k₁ c = k₂ c` with numbers `k₁ ≠ k₂`, i.e. `c = 0`.
+    the negation inside: you must produce two unit systems and concrete `m, v, E` for which `E = c m v`
+    holds in one system and fails after converting to the other (cheatsheet R1–R5).
+H2. Use `SI` and `SIPrimed` (units scaled by 2, 3, 5) and `m = v = 1`, `E = c`, which satisfy the relation.
+    Converting multiplies `E` by `s_M s_L² / s_T²` but `c m v` by `s_M s_L / s_T` (`s_M, s_L, s_T` = the
+    mass, length, time factors); here `s_L / s_T ≠ 1`, so the converted equation says `a c = b c` with
+    numerals `a ≠ b`, which forces `c = 0` (R16–R18).
 H3. `simp only [isDimensionallyCorrect_fun_iff, not_forall, funext_iff, scaleUnit_apply_fun]`, then
     `use SI, SIPrimed, ⟨1⟩, ⟨1⟩, ⟨c⟩`, `unfold Wrong`, `norm_num [WithDim.scaleUnit_val, M𝓭, L𝓭, T𝓭, NNReal.smul_def]`.
-    What is left is `¬ (a * c = c * b)` for numerals `a ≠ b`: assume it and derive `c = 0`.
+    What is left is `¬ (a * c = c * b)` for numerals `a ≠ b`: assume it (R16), reduce `False` to `c = 0`
+    with `hc` (R17) and finish by linear arithmetic (R18).
 -/

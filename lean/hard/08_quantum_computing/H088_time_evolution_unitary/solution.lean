@@ -4,20 +4,11 @@ GOAL
       `exp(−i(θ/2)X) = cos(θ/2)·1 − i·sin(θ/2)·X = Rx θ`  (prove it by diagonalising `X`).
   (2) For every Hermitian `H` and real `t`, `exp(−itH)` is unitary (Schrödinger evolution keeps norms).
 
-REFERENCE
-  -- `NormedSpace.exp A` is the series ∑ Aᵏ/k!;  `Aᴴ` conjugate transpose;  `diagonal v` has `v` on the diagonal;  `I` = √−1
-  #check Matrix.exp_units_conj   -- (U : (Matrix m m 𝔸)ˣ) : exp (↑U * A * ↑U⁻¹) = ↑U * exp A * ↑U⁻¹
-  #check Matrix.exp_diagonal     -- exp (diagonal v) = diagonal (exp v)
-  #check Pi.exp_def              -- exp v = fun i => exp (v i)       (exp of a vector is entrywise)
-  #check Complex.exp_eq_exp_ℂ    -- `cexp` (= Complex.exp) = NormedSpace.exp   (rewrite with ← to get `cexp` back)
-  #check Complex.exp_mul_I       -- cexp (x * I) = cos x + sin x * I
-  #check Matrix.exp_conjTranspose -- exp Aᴴ = (exp A)ᴴ
-  #check Matrix.exp_add_of_commute -- Commute A B (i.e. A * B = B * A) → exp (A + B) = exp A * exp B
-  #check Matrix.mem_unitaryGroup_iff -- A ∈ unitaryGroup n α ↔ A * star A = 1   (`Matrix.star_eq_conjTranspose`)
-  example : (Matrix (Fin 2) (Fin 2) ℂ)ˣ := ⟨1, 1, mul_one 1, mul_one 1⟩  -- a unit: ⟨val, inv, val*inv=1, inv*val=1⟩
-  example (H : Matrix (Fin 2) (Fin 2) ℂ) (hH : H.IsHermitian) : Hᴴ = H := hH.eq  -- Hermitian means Hᴴ = H
-  #check Matrix.conjTranspose_smul -- (c • M)ᴴ = star c • Mᴴ   (`star c` is the complex conjugate)
-NOTE: use `Matrix.exp_add_of_commute`; the generic `NormedSpace.exp_add_of_commute` does not rewrite on matrices.
+GUIDE
+  Entries R1–R36: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -34,6 +25,13 @@ noncomputable def Rx (θ : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![(Real.cos (θ / 2) : ℂ), -I * Real.sin (θ / 2); -I * Real.sin (θ / 2), (Real.cos (θ / 2) : ℂ)]
 -- END SPEC
 
+/- SKELETON · HU   (MILESTONE 1: the eigenvector matrix of `X`; used in `diag_conj` and `time_evolution`)
+  The two `sorry`s are the proof fields `val * inv = 1` and `inv * val = 1`: write `by …` in each.   R1
+  In each field:
+    1. matrix equation → four entry goals                                    R2, R3
+    2. evaluate the entries: `simp` with the product lemmas                  R4, R5 (R6 by itself)
+    3. finish the numerals that remain                                       R7
+-/
 -- MILESTONE (optional: change or delete)
 /-- the (unnormalised) Hadamard matrix `!![1, 1; 1, -1]` as a unit, with inverse `½ · itself` -/
 noncomputable def HU : (Matrix (Fin 2) (Fin 2) ℂ)ˣ :=
@@ -41,6 +39,12 @@ noncomputable def HU : (Matrix (Fin 2) (Fin 2) ℂ)ˣ :=
     by ext i j; fin_cases i <;> fin_cases j <;> simp [mul_apply, Fin.sum_univ_two] <;> norm_num,
     by ext i j; fin_cases i <;> fin_cases j <;> simp [mul_apply, Fin.sum_univ_two] <;> norm_num⟩
 
+/- SKELETON · diag_conj   (MILESTONE 2: `c • X = V diag(c, −c) V⁻¹`; used in `time_evolution`)
+  1. matrix equation → four entry goals                                      R2, R3
+  2. `simp` with `X`, `HU` and the product lemmas; it unfolds `↑HU`, `↑HU⁻¹` by itself (R8, R9).
+     Also pass R10, or `simp` stops at `v ᵥ* diagonal w` (W4):                R4, R5, R10
+  3. close what is left                                                      R11
+-/
 -- MILESTONE (optional: change or delete)
 /-- `X` is diagonalised by `HU`, with eigenvalues `1, −1` -/
 theorem diag_conj (c : ℂ) :
@@ -48,12 +52,24 @@ theorem diag_conj (c : ℂ) :
   ext i j
   fin_cases i <;> fin_cases j <;> simp [X, HU, mul_apply, vecMul_diagonal, Fin.sum_univ_two] <;> ring
 
+/- SKELETON · exp_diag   (MILESTONE 3: used in `time_evolution`)
+  1. exp of a diagonal → diagonal of the vector exp                          R12
+  2. vector exp → entrywise exp                                              R13
+  3. scalar `NormedSpace.exp` → `cexp`, under the `fun`                      R14
+-/
 -- MILESTONE (optional: change or delete)
 theorem exp_diag (v : Fin 2 → ℂ) :
     NormedSpace.exp (diagonal v) = diagonal (fun i => Complex.exp (v i)) := by
   rw [Matrix.exp_diagonal, Pi.exp_def]
   simp only [← Complex.exp_eq_exp_ℂ]
 
+/- SKELETON · star_gen   (MILESTONE 4: `(−itH)ᴴ = −(−itH)`; used in `evolution_unitary`)
+  1. pull `ᴴ` through the scalar, then drop it from `H`                       R15, R16
+  2. move the outer minus onto the scalar                                    R17
+  3. compare the scalars                                                     R18
+  4. compute the conjugate `star (-↑t * I) = -(-↑t * I)` with plain `simp`  R22
+     (it applies R19–R21 and the sign lemmas itself; by hand you would also need `map_neg`)
+-/
 -- MILESTONE (optional: change or delete)
 /-- the generator `−itH` is anti-Hermitian -/
 theorem star_gen {n : Type} [Fintype n] (H : Matrix n n ℂ) (hH : H.IsHermitian) (t : ℝ) :
@@ -62,6 +78,19 @@ theorem star_gen {n : Type} [Fintype n] (H : Matrix n n ℂ) (hH : H.IsHermitian
   congr 1
   simp [Complex.conj_ofReal]
 
+/- SKELETON · time_evolution
+  Prove MILESTONES 1–3 first (HU, diag_conj, exp_diag): step 1 rewrites with them.
+  1. rw [diag_conj, Matrix.exp_units_conj, exp_diag]                         R23
+     (now `↑HU * diagonal (fun i => cexp (![c, -c] i)) * ↑HU⁻¹ = Rx θ`, `c = -(↑θ / 2) * I`)
+  2. BEFORE any `simp`, name the phases (`have`, TACTIC_STATES):
+       hv : (fun i => cexp (![-(θ / 2 : ℂ) * I, -(-(θ / 2 : ℂ) * I)] i))
+              = ![cos (θ / 2) - sin (θ / 2) * I, cos (θ / 2) + sin (θ / 2) * I]
+     proof: R24, R3; then index 0: R25, R26, R27, R11;  index 1: R25, R28, R26   (pattern: W2)
+  3. rw [hv]
+  4. matrix equation → four entry goals                                      R2, R3
+  5. `simp` with `HU`, `Rx` and the product lemmas (R8, R9, R29 by itself)   R4, R5, R10
+  6. close each entry                                                        R11
+-/
 -- BEGIN SPEC
 theorem time_evolution (θ : ℝ) : NormedSpace.exp ((-(θ / 2 : ℂ) * I) • X) = Rx θ :=
 -- END SPEC
@@ -83,6 +112,15 @@ theorem time_evolution (θ : ℝ) : NormedSpace.exp ((-(θ / 2 : ℂ) * I) • X
       simp [HU, Rx, mul_apply, vecMul_diagonal, Fin.sum_univ_two, Complex.ofReal_cos,
         Complex.ofReal_sin] <;> ring
 
+/- SKELETON · evolution_unitary
+  Prove MILESTONE 4 (star_gen) first: step 3 rewrites with it. Below, A = (-(t : ℂ) * I) • H.
+  One `rw [...]` chain:
+  1. membership → `exp A * star (exp A) = 1`, then `star` → `ᴴ`               R30, R31
+  2. move `ᴴ` inside: `(exp A)ᴴ` → `exp Aᴴ`                                   R32
+  3. rw [star_gen H hH t]: `Aᴴ` → `-A`
+  4. merge `exp A * exp (-A)` → `exp (A + -A)`; give the commute proof with A written out   R33 inside R34
+  5. `A + -A` → `0`, `exp 0` → `1`                                           R35, R36
+-/
 -- BEGIN SPEC
 theorem evolution_unitary {n : Type} [Fintype n] [DecidableEq n] (H : Matrix n n ℂ)
     (hH : H.IsHermitian) (t : ℝ) :
@@ -96,19 +134,23 @@ theorem evolution_unitary {n : Type} [Fintype n] [DecidableEq n] (H : Matrix n n
 end H088
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. (1) The exponential of a diagonal matrix is easy, and `exp` commutes with conjugation by an invertible
-    matrix; `X` has eigenvectors `(1, 1)` and `(1, −1)`. (2) `U` is unitary iff `U * Uᴴ = 1`; push `ᴴ`
-    inside `exp`, and use that `−itH` and its conjugate transpose add up to `0`. (`Matrix.exp_neg` also
-    works, but then needs invertibility of `exp A`; the commute route is shorter.)
-H2. (1) `rw [diag_conj, Matrix.exp_units_conj, exp_diag]`, then compare the four entries of the 2×2 product
-    (`ext i j; fin_cases i <;> fin_cases j`), writing each exponential as cos ± i·sin.
-    (2) Unfold unitary membership to `U * Uᴴ = 1`, move `ᴴ` inside `exp`, turn the generator into `−A` with
-    `star_gen`, then show `exp A * exp (−A) = exp (A + −A) = exp 0 = 1`.
-H3. (1) After the `rw`, the diagonal is `fun i => cexp (![a, -a] i)` with `a = -(θ/2 : ℂ) * I`. Rewrite it
-    first: `(fun i => …) = ![cos (θ/2) - sin (θ/2) * I, cos (θ/2) + sin (θ/2) * I]` by `funext i; fin_cases i`
-    and `Complex.exp_mul_I`, `Complex.cos_neg`, `Complex.sin_neg`, `neg_neg`. Then compare entries with `simp`
-    (unfold `HU`, `Rx`; `vecMul_diagonal` is needed) followed by `ring`.
-    HU's proof fields and `diag_conj`: start with `ext i j; fin_cases i <;> fin_cases j`.
-    (2) `exp A * exp (−A) = 1` via `Matrix.exp_add_of_commute` with `(Commute.refl A).neg_right`; write
-    `A = (-(t : ℂ) * I) • H` out in full (from `_` Lean cannot infer its type).
+H1. (1) `X` has eigenvectors `(1, 1)` and `(1, −1)` with eigenvalues `1, −1`, so `c • X = V diag(c, −c) V⁻¹`
+    with `V = !![1, 1; 1, -1]` (`HU`). The exponential commutes with conjugation by a unit and acts entrywise on
+    a diagonal; the two phases are `e^{∓iθ/2} = cos(θ/2) ∓ i sin(θ/2)`.
+    (2) `U` is unitary iff `U * Uᴴ = 1`. Push `ᴴ` inside `exp`; the generator `A = −itH` satisfies `Aᴴ = −A`,
+    and `A` commutes with `−A`, so `exp A * exp (−A) = exp 0 = 1`.
+H2. Milestones first. `HU`, `diag_conj`: entry by entry (R2, R3), `simp` with `Matrix.mul_apply`,
+    `Fin.sum_univ_two` (and `Matrix.vecMul_diagonal` for `diag_conj`), then `norm_num` / `ring`.
+    `exp_diag`: `Matrix.exp_diagonal`, `Pi.exp_def`, `simp only [← Complex.exp_eq_exp_ℂ]`. `star_gen`:
+    `Matrix.conjTranspose_smul`, `hH.eq`, `← neg_smul`, `congr 1`, `simp`.
+    (1) `rw [diag_conj, Matrix.exp_units_conj, exp_diag]`, prove and `rw` the phase vector `hv` (SKELETON), then
+    compare entries. (2) `rw [Matrix.mem_unitaryGroup_iff, Matrix.star_eq_conjTranspose,
+    ← Matrix.exp_conjTranspose, star_gen H hH t, …]`.
+H3. (1) `hv` by `funext i; fin_cases i`; index 0: `simp only [Fin.zero_eta, Matrix.cons_val_zero,
+    Complex.exp_mul_I, Complex.cos_neg, Complex.sin_neg]` then `ring`; index 1: `simp only [Fin.mk_one,
+    Matrix.cons_val_one, Matrix.cons_val_zero, neg_mul, neg_neg, Complex.exp_mul_I]`. After `rw [hv]`:
+    `ext i j; fin_cases i <;> fin_cases j <;> simp [HU, Rx, Matrix.mul_apply, Matrix.vecMul_diagonal,
+    Fin.sum_univ_two] <;> ring`.
+    (2) finish the chain with `← Matrix.exp_add_of_commute _ _ ((Commute.refl ((-(t : ℂ) * I) • H)).neg_right),
+    add_neg_cancel, NormedSpace.exp_zero`.
 -/

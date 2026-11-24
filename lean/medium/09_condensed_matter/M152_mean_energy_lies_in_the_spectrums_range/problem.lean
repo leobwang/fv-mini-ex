@@ -4,15 +4,11 @@ GOAL
   `U(b) = ∑ i, E i * p i` (with Boltzmann weights `p i = exp (-b E i) / Z(b)`, kB = 1) also lies in
   `[m, M]`, at every inverse temperature `b`, including negative ones.
 
-REFERENCE
-  #check CanonicalEnsemble.meanEnergyBetaReal   -- 𝓒.meanEnergyBetaReal b = ∑ i, 𝓒.energy i * 𝓒.probabilityBetaReal b i
-  #check CanonicalEnsemble.probabilityBetaReal  -- 𝓒.probabilityBetaReal b i = exp (-b * 𝓒.energy i) / Z(b)
-  #check CanonicalEnsemble.mathematicalPartitionFunctionBetaReal  -- Z(b) = ∑ i, exp (-b * 𝓒.energy i)
-  #check CanonicalEnsemble.mathematicalPartitionFunctionBetaReal_pos  -- [Nonempty ι] : 0 < Z(b)
-  #check Finset.sum_le_sum  -- (∀ i ∈ s, f i ≤ g i) → ∑ i ∈ s, f i ≤ ∑ i ∈ s, g i
-  #check Finset.mul_sum     -- a * ∑ i ∈ s, f i = ∑ i ∈ s, a * f i
-  #check mul_le_mul_of_nonneg_right  -- b ≤ c → 0 ≤ a → b * a ≤ c * a
-  `calc a = b := h1` with `_ ≤ c := h2` on the next line chains `=` and `≤` into `a ≤ c`.
+GUIDE
+  Entries R1–R13: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.StatisticalMechanics.CanonicalEnsemble.Finite
 
@@ -20,6 +16,19 @@ open CanonicalEnsemble Real
 
 namespace M152
 
+/- SKELETON · meanEnergy_bounds
+  Write `p i` for `𝓒.probabilityBetaReal b i`, `Z` for `𝓒.mathematicalPartitionFunctionBetaReal b`.
+  1. Three facts first, all used in both halves:
+       hZ : 0 < Z                                                           R1
+       hp : ∀ i, 0 ≤ p i               intro i, unfold p, then close        R2 → R3 (needs hZ)
+       h1 : ∑ i, p i = 1               unfold p, pull out `/ Z`, cancel     R2 → R4 → R7 (R6 with R5)
+  2. Unfold the mean energy, then split the `∧`:                            R8, constructor
+  3. Lower half `m ≤ ∑ i, E i * p i`, a two-step calc:                      R9
+       m = ∑ i, m * p i                pull `m` out, rw [h1], drop `* 1`    R10, rw [h1], R11
+       _ ≤ _                           term by term, using hm i and hp i    R12 → R13
+  4. Upper half `∑ i, E i * p i ≤ M`: the mirror image, middle term `∑ i, M * p i`,
+     the `≤` step first (hM i, hp i), then the `=` step:                    R9, R12 → R13, R10, rw [h1], R11
+-/
 -- BEGIN SPEC
 theorem meanEnergy_bounds {ι : Type} [Fintype ι] [Nonempty ι] [MeasurableSpace ι]
     (𝓒 : CanonicalEnsemble ι) (b m M : ℝ) (hm : ∀ i, m ≤ 𝓒.energy i) (hM : ∀ i, 𝓒.energy i ≤ M) :
@@ -30,9 +39,12 @@ theorem meanEnergy_bounds {ι : Type} [Fintype ι] [Nonempty ι] [MeasurableSpac
 end M152
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. A weighted average of numbers in `[m, M]` with non-negative weights summing to 1 stays in `[m, M]`.
-H2. First prove `hp : ∀ i, 0 ≤ p i` and `h1 : ∑ i, p i = 1` (the facts of M150). Then write `m` as
-    `∑ i, m * p i` and compare the sums term by term.
-H3. `calc m = ∑ i, m * 𝓒.probabilityBetaReal b i := by rw [← Finset.mul_sum, h1, mul_one]`
-    `_ ≤ _ := Finset.sum_le_sum fun i _ => mul_le_mul_of_nonneg_right (hm i) (hp i)`; mirror it for `M`.
+H1. `U(b)` is a weighted average of the energies: the weights `p i` are non-negative and sum to 1, and an
+    average of numbers in `[m, M]` stays in `[m, M]`. The sign of `b` never matters.
+H2. Prove `hZ`, `hp : ∀ i, 0 ≤ p i` and `h1 : ∑ i, p i = 1` first. Unfold `meanEnergyBetaReal`, split, and
+    in each half `calc` through `∑ i, m * p i` (resp. `∑ i, M * p i`): one step is `rw` with
+    `← Finset.mul_sum`, `h1`, `mul_one`; the other compares the sums term by term.
+H3. `h1`: `simp only [probabilityBetaReal, ← Finset.sum_div]` then `exact div_self hZ.ne'`.
+    Lower half: `calc m = ∑ i, m * 𝓒.probabilityBetaReal b i := by rw [← Finset.mul_sum, h1, mul_one]`
+    then `_ ≤ _ := Finset.sum_le_sum fun i _ => mul_le_mul_of_nonneg_right (hm i) (hp i)`; mirror it for `M`.
 -/
