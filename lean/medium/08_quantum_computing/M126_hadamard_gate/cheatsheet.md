@@ -1,9 +1,9 @@
 # M126 · The Hadamard gate: cheatsheet
 
-Exercise: [`medium/08_quantum_computing/M126_hadamard_gate.lean`](../../../medium/08_quantum_computing/M126_hadamard_gate.lean).
-Lean companion: [`M126_hadamard_gate.lean`](M126_hadamard_gate.lean) in this folder. Entry **Rn** here is
+Exercise: [`problem.lean`](problem.lean).
+Lean companion: [`guide.lean`](guide.lean). Entry **Rn** here is
 example **Rn** there. Put the cursor after each tactic to see the same before and after states in the
-infoview. Generic tactics are in [`../../TACTIC_STATES.md`](../../TACTIC_STATES.md).
+infoview. Generic tactics are in [`TACTIC_STATES.md`](../../../TACTIC_STATES.md).
 
 **Assumed:** Lean basics (easy tier E001–E033). **New here:** Mathlib's matrices, complex numbers,
 real numbers cast into `ℂ`, and `Real.sqrt`.

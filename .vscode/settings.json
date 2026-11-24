@@ -11,7 +11,8 @@
   },
   // Keep reference solutions out of search and Cmd+P; open them from the explorer.
   "search.exclude": {
-    "**/solutions": true
+    "**/solutions": true,
+    "lean/**/solution.lean": true
   },
 
   // Editor and ./check share one Dafny and one resource limit. The extension resolves

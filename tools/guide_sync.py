@@ -1,20 +1,31 @@
 #!/usr/bin/env python3
-"""Check that guide cheatsheets quote proof states the guide examples actually produce.
+"""Check each Lean problem folder's guide.lean and cheatsheet.md against Lean and the problem.
 
-For every lean/guide/**/<ID>_*.md with a sibling <ID>_*.lean:
-  * every inline code span containing `⊢` in a table row (cells such as `i j : Fin 2 ⊢ M i j = N i j`) must
-    match one goal Lean reaches: the text after `⊢` equals that goal, and each hypothesis written
-    before `⊢` (separated by `, `) is one of that goal's hypothesis lines;
-  * every non-blank line inside a ```lean-goal block must be a goal line Lean reaches.
+A Lean problem folder is lean/<tier>/[<topic>/]<ID>_<name>/ holding problem.lean, solution.lean,
+guide.lean and cheatsheet.md. For every folder (or only the IDs given):
 
-The guide .lean file holds plain examples. To learn the states, this script copies it to a temporary
-file, inserts `trace_state` before the first tactic of every `:= by` proof and after each top-level
-tactic, compiles the copy with `lake env lean --json`, and reads the printed goals. Those are the states
-the infoview shows. The guide file itself is never changed. Any error in the copy fails the check.
+  * shape: all four files exist; problem.lean has a GUIDE block, no REFERENCE card, and a SKELETON
+    comment before each spec theorem/lemma;
+  * guide.lean compiles with no errors, warnings or `sorry`;
+  * every inline code span containing `⊢` in a cheatsheet table row (cells such as
+    `i j : Fin 2 ⊢ M i j = N i j`) matches one goal Lean reaches in guide.lean: the text after `⊢`
+    equals that goal, and each hypothesis written before `⊢` (separated by `, `) is one of that
+    goal's hypothesis lines; every non-blank line in a ```lean-goal block is a goal Lean reaches;
+  * guide.lean uses none of the problem's BANNED names (same matching as ./check);
+  * guide.lean copies no line of the problem's spec regions (no spoilers: the guide teaches on
+    other objects).
 
-    tools/guide_sync.py
-Exit status 1 on any mismatch or compile error. Stdlib only.
+States are read without changing guide.lean: a temporary copy gets `trace_state` before the first
+tactic of every multi-line `:= by` proof and after each top-level tactic, and is compiled with
+`lake env lean --json`. Those are the states the infoview shows.
+
+    tools/guide_sync.py                 # every folder
+    tools/guide_sync.py M126 E003       # only these IDs
+    tools/guide_sync.py -j 8            # parallel compiles (default 4)
+Exit status 1 on any problem. Stdlib only.
 """
+import concurrent.futures as cf
+import importlib.util
 import json
 import re
 import subprocess
@@ -23,10 +34,17 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-GUIDE = ROOT / "lean" / "guide"
+LEAN = ROOT / "lean"
+_spec = importlib.util.spec_from_file_location("fvcheck", ROOT / "tools" / "check.py")
+check = importlib.util.module_from_spec(_spec)
+sys.modules["fvcheck"] = check  # dataclasses look the module up while it loads
+_spec.loader.exec_module(check)
+
 GOAL_BLOCK = re.compile(r"^```lean-goal\n(.*?)^```", re.S | re.M)
 CODE_SPAN = re.compile(r"`([^`]*⊢[^`]*)`")
 DECL = re.compile(r"^(example|theorem|lemma)\b")
+SPEC_THEOREM = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)*(?:private\s+|protected\s+)*(theorem|lemma)\s+\S+")
+MIN_SPOILER_LEN = 30  # spec lines shorter than this (`| 0 => 0`, `end Foo`) are too generic to flag
 
 
 def indent(line: str) -> int:
@@ -62,20 +80,22 @@ def instrument(src: str) -> str:
     return "\n".join(out)
 
 
-def reached_goals(lean: Path) -> tuple[list[tuple[set[str], str]], list[str]]:
-    """(hypothesis lines, goal) for every goal the instrumented copy prints, plus any errors."""
-    with tempfile.NamedTemporaryFile("w", suffix=".lean", delete=False) as f:
-        f.write(instrument(lean.read_text()))
+def lean_json(src: str) -> tuple[list[dict], int, str]:
+    tmpdir = LEAN / ".lake" / "fvcheck"
+    tmpdir.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", suffix=".lean", dir=tmpdir, delete=False) as f:
+        f.write(src)
         tmp = Path(f.name)
     try:
-        r = subprocess.run(["lake", "env", "lean", "--json", str(tmp)], cwd=ROOT / "lean",
-                           capture_output=True, text=True)
+        r = subprocess.run([check.lake(), "env", "lean", "--json", str(tmp)], cwd=LEAN,
+                           capture_output=True, text=True, timeout=1800)
     finally:
         tmp.unlink()
     msgs = [json.loads(l) for l in r.stdout.splitlines() if l.startswith("{")]
-    errors = [f"{m['pos']['line']}: {m['data']}" for m in msgs if m["severity"] == "error"]
-    if r.returncode != 0 and not errors:
-        errors.append(r.stderr.strip() or "lean failed")
+    return msgs, r.returncode, r.stderr
+
+
+def goals_of(msgs: list[dict]) -> list[tuple[set[str], str]]:
     goals = []
     for m in msgs:
         if m["severity"] != "information":
@@ -87,7 +107,7 @@ def reached_goals(lean: Path) -> tuple[list[tuple[set[str], str]], list[str]]:
                 continue
             goal = " ".join([ls[k][1:].strip()] + [l.strip() for l in ls[k + 1:]])
             goals.append((set(ls[:k]), goal))
-    return goals, errors
+    return goals
 
 
 def check_span(span: str, goals) -> bool:
@@ -97,30 +117,112 @@ def check_span(span: str, goals) -> bool:
     return any(g == goal and all(h in hs for h in want_hyps) for hs, g in goals)
 
 
+def shape_issues(folder: Path) -> list[str]:
+    issues = [f"missing {n}" for n in ("problem.lean", "solution.lean", "guide.lean", "cheatsheet.md")
+              if not (folder / n).exists()]
+    if issues:
+        return issues
+    src = (folder / "problem.lean").read_text()
+    header = src.split("-/", 1)[0]
+    if not re.search(r"^GUIDE\s*$", header, re.M):
+        issues.append("problem.lean: no GUIDE block in the header comment")
+    if re.search(r"^REFERENCE\s*$", header, re.M):
+        issues.append("problem.lean: still has a REFERENCE card")
+    lines = src.splitlines()
+    for i, line in enumerate(lines):
+        if not check.SPEC_BEGIN_RE.match(line):
+            continue
+        body = next((l for l in lines[i + 1:] if l.strip() and not l.strip().startswith("--")), "")
+        if not SPEC_THEOREM.match(body):
+            continue
+        before = "\n".join(lines[max(0, i - 40):i])
+        last_skel, last_spec = before.rfind("SKELETON"), before.rfind("END SPEC")
+        if last_skel < 0 or last_skel < last_spec:
+            issues.append(f"problem.lean line {i + 1}: no SKELETON comment before this spec theorem")
+    return issues
+
+
+def spoiler_issues(problem: str, guide: str) -> list[str]:
+    norm = lambda s: re.sub(r"\s+", " ", s).strip()
+    code = norm(check.strip_comments(guide, check.LANGS["lean"]))
+    out = []
+    for _, region in check.spec_regions(problem):
+        for line in region.splitlines():
+            n = norm(line)
+            if len(n) >= MIN_SPOILER_LEN and n in code:
+                out.append(f"guide.lean copies a spec line of problem.lean: {n}")
+                continue
+            # the same statement restated as `example …` or under another name
+            m = re.match(r"(?:theorem|lemma|def|abbrev)\s+\S+\s+(.*?)\s*(?::=)?$", n)
+            if m and len(m[1]) >= MIN_SPOILER_LEN - 10 and m[1] in code:
+                out.append(f"guide.lean restates a spec declaration of problem.lean: {n}")
+    return out
+
+
+def check_folder(folder: Path, frozen: dict) -> list[str]:
+    rel = folder.relative_to(ROOT)
+    issues = shape_issues(folder)
+    if any(i.startswith("missing ") for i in issues):
+        return [f"{rel}: {i}" for i in issues]
+    problem = (folder / "problem.lean").read_text()
+    guide = (folder / "guide.lean").read_text()
+    pid = re.match(r"([EMH]\d{2,3})_", folder.name)[1]
+    banned = frozen.get(pid, {}).get("banned") or check.banned_names(problem)
+    issues += [f"guide.lean {h}" for h in check.banned_hits(guide, check.LANGS["lean"], banned)]
+    issues += spoiler_issues(problem, guide)
+    if re.search(r"(?<![\w.])sorry(?![\w'])", check.strip_comments(guide, check.LANGS["lean"])):
+        issues.append("guide.lean contains sorry")
+    msgs, code, stderr = lean_json(instrument(guide))
+    for m in msgs:
+        if m["severity"] in ("error", "warning"):
+            issues.append(f"guide.lean {m['severity']} (instrumented line {m['pos']['line']}): "
+                          f"{m['data'].strip()[:400]}")
+    if code != 0 and not any(m["severity"] == "error" for m in msgs):
+        issues.append(f"guide.lean: lean failed: {stderr.strip()[:400]}")
+    goals = goals_of(msgs)
+    goal_texts = {g for _, g in goals}
+    text = (folder / "cheatsheet.md").read_text()
+    rows = [l for l in GOAL_BLOCK.sub("", text).splitlines() if l.lstrip().startswith("|")]
+    spans = [s for row in rows for s in CODE_SPAN.findall(row)]
+    block_lines = [l.strip() for b in GOAL_BLOCK.findall(text) for l in b.splitlines() if l.strip()]
+    issues += [f"cheatsheet.md state not reached in guide.lean: {s}" for s in spans if not check_span(s, goals)]
+    issues += [f"cheatsheet.md goal line not reached in guide.lean: {l}" for l in block_lines
+               if l.lstrip("⊢ ").strip() not in goal_texts]
+    if not issues:
+        return [f"OK {rel}: {len(spans)} table states, {len(block_lines)} goal lines"]
+    return [f"{rel}: {i}" for i in issues]
+
+
+def folders(ids: set) -> list[Path]:
+    out = []
+    for p in check.problems(check.LANGS["lean"], solutions=False):
+        if not ids or check.id_key(p.pid) in ids:
+            out.append(p.path.parent)
+    return out
+
+
 def main() -> int:
-    failures = 0
-    for md in sorted(GUIDE.rglob("*.md")):
-        lean = md.with_suffix(".lean")
-        if not lean.exists():
-            continue  # shared sheets such as TACTIC_STATES.md
-        rel = md.relative_to(ROOT)
-        goals, errors = reached_goals(lean)
-        for e in errors:
-            print(f"{lean.relative_to(ROOT)}: error at {e}")
-        failures += len(errors)
-        goal_texts = {g for _, g in goals}
-        text = md.read_text()
-        table_rows = [l for l in GOAL_BLOCK.sub("", text).splitlines() if l.lstrip().startswith("|")]
-        spans = [s for row in table_rows for s in CODE_SPAN.findall(row)]
-        block_lines = [l.strip() for b in GOAL_BLOCK.findall(text) for l in b.splitlines() if l.strip()]
-        bad = [s for s in spans if not check_span(s, goals)]
-        bad += [l for l in block_lines if l.lstrip("⊢ ").strip() not in goal_texts]
-        for s in bad:
-            print(f"{rel}: not reached in {lean.name}: {s}")
-        failures += len(bad)
-        if not bad and not errors:
-            print(f"{rel}: {len(spans)} table states and {len(block_lines)} goal lines, all reached in Lean")
-    return 1 if failures else 0
+    args = sys.argv[1:]
+    jobs = 4
+    if "-j" in args:
+        k = args.index("-j")
+        jobs = int(args[k + 1])
+        del args[k:k + 2]
+    ids = {check.id_key(a) for a in args}
+    todo = folders(ids)
+    if not todo:
+        print("no matching problem folders")
+        return 1
+    frozen = check.load_specs(check.LANGS["lean"])
+    bad = 0
+    with cf.ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
+        for lines in ex.map(lambda f: check_folder(f, frozen), todo):
+            for l in lines:
+                print(l)
+            bad += not lines[0].startswith("OK ")
+    if len(todo) > 1:
+        print(f"\n{len(todo) - bad}/{len(todo)} folders OK")
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":

@@ -59,13 +59,17 @@ modules the exercises use (physlib has no prebuilt cache; about 10–20 minutes,
 
 ## Workflow
 
-1. Open a problem, e.g. `dafny/easy/E07_….dfy` or `lean/medium/08_quantum_computing/M131_….lean`. The top comment is the card: **GOAL** and a
-   **REFERENCE** with only the syntax and library names that problem needs.
+1. Open a problem, e.g. `dafny/easy/E07_….dfy` or `lean/medium/08_quantum_computing/M126_hadamard_gate/problem.lean`.
+   Dafny and Verus: the top comment is the card, **GOAL** and a **REFERENCE** with only the syntax and
+   library names that problem needs. Lean: each problem is a folder. `problem.lean` states the **GOAL**
+   and puts a **SKELETON** before each theorem (the proof's steps, naming guide entries R1, R2, …);
+   `cheatsheet.md` explains each entry with the proof state before and after, and `guide.lean` has the
+   same entries as small examples to step through in the infoview.
 2. Fill the holes (`sorry` in Lean; `{ }` bodies or `0 // TODO` placeholders in Dafny/Verus). Add any
    helper lemmas you like.
 3. Run `./check dafny E07`. Stuck? Hints are at the bottom of the file under `HINTS`, in three
    levels: a nudge, the strategy, the key line.
-4. Compare with `dafny/solutions/easy/E07_….dfy`.
+4. Compare with `dafny/solutions/easy/E07_….dfy` (Lean: `solution.lean` in the problem's folder).
 
 ```sh
 ./check lean E05 E06       # check specific problems
