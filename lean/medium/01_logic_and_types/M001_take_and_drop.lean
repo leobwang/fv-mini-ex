@@ -13,6 +13,15 @@ REFERENCE
   `omega` understands `min a b` and `max a b`.
 -/
 
+example (n : Nat) (xs : List Nat) : xs.length + n ≥ n := by
+  induction n with     -- ih : ∀ xs, ... (xs is re-quantified)
+  | zero => omega
+  | succ k ih => omega
+
+example (xs : List Nat) : xs = xs := by cases xs with | nil => rfl | cons y ys => rfl
+
+example (n m : Nat) : n + 1 + m = (n + m) + 1 := by omega   -- then `rw [this]` to expose `+ 1`
+
 namespace M001
 
 -- BEGIN SPEC
@@ -28,24 +37,45 @@ def drop {α : Type} : Nat → List α → List α
 -- END SPEC
 
 -- BEGIN SPEC
-theorem take_append_drop {α : Type} (n : Nat) (xs : List α) : take n xs ++ drop n xs = xs :=
+theorem take_append_drop {α : Type} (n : Nat) (xs : List α) : take n xs ++ drop n xs = xs := by
 -- END SPEC
-  sorry
+  induction n generalizing xs with
+  | zero => rfl
+  | succ k ih =>
+  cases xs with
+    | nil => rfl
+    | cons y ys => simp [take, drop, ih]
 
 -- BEGIN SPEC
-theorem length_drop {α : Type} (n : Nat) (xs : List α) : (drop n xs).length = xs.length - n :=
+theorem length_drop {α : Type} (n : Nat) (xs : List α) : (drop n xs).length = xs.length - n := by
 -- END SPEC
-  sorry
+  induction n generalizing xs with
+  | zero => rfl
+  | succ k ih =>
+  cases xs with
+    | nil => simp [drop]
+    | cons y ys => simp [drop, ih]
 
 -- BEGIN SPEC
-theorem length_take {α : Type} (n : Nat) (xs : List α) : (take n xs).length = min n xs.length :=
+theorem length_take {α : Type} (n : Nat) (xs : List α) : (take n xs).length = min n xs.length := by
 -- END SPEC
-  sorry
+  induction n generalizing xs with
+  | zero => rfl
+  | succ k ih =>
+    cases xs with
+    | nil => simp [take]
+    | cons y ys => simp [take, ih]
 
 -- BEGIN SPEC
-theorem drop_drop {α : Type} (m n : Nat) (xs : List α) : drop m (drop n xs) = drop (n + m) xs :=
+theorem drop_drop {α : Type} (m n : Nat) (xs : List α) : drop m (drop n xs) = drop (n + m) xs := by
 -- END SPEC
-  sorry
+  induction n generalizing xs with
+  | zero => simp [drop]
+  | succ k ih =>
+    rw [show k + 1 + m = (k + m) + 1 by omega]
+    cases xs with
+      | nil => cases m <;> rfl
+      | cons y ys => simp [drop, ih]
 
 end M001
 

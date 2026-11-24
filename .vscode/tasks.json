@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Check current problem",
+      "detail": "./check on the active file (Cmd+Shift+B)",
+      "type": "shell",
+      "command": "tools/check-file",
+      "args": ["${relativeFile}"],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "clear": true, "showReuseMessage": false },
+      // Lean and Dafny report live through their extensions; Verus needs this.
+      "problemMatcher": {
+        "owner": "verus",
+        "source": "verus",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [
+          { "regexp": "^\\s*(error|warning)(?:\\[\\w+\\])?:\\s+(.*)$", "severity": 1, "message": 2 },
+          { "regexp": "^\\s*-->\\s+(\\S+):(\\d+):(\\d+)$", "file": 1, "line": 2, "column": 3 }
+        ]
+      }
+    },
+    {
+      "label": "Check whole track",
+      "detail": "./check <lang> with a pass/todo/fail summary",
+      "type": "shell",
+      "command": "./check",
+      "args": ["${input:track}"],
+      "presentation": { "reveal": "always", "clear": true, "showReuseMessage": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Watch Verus",
+      "detail": "Re-check a Verus problem each time it is saved (starts with the folder)",
+      "type": "shell",
+      "command": "tools/watch-verus",
+      "isBackground": true,
+      "runOptions": { "runOn": "folderOpen" },
+      "presentation": { "reveal": "never", "showReuseMessage": false },
+      "problemMatcher": {
+        "owner": "verus",
+        "source": "verus",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [
+          { "regexp": "^\\s*(error|warning)(?:\\[\\w+\\])?:\\s+(.*)$", "severity": 1, "message": 2 },
+          { "regexp": "^\\s*-->\\s+(\\S+):(\\d+):(\\d+)$", "file": 1, "line": 2, "column": 3 }
+        ],
+        "background": {
+          "activeOnStart": false,
+          "beginsPattern": { "regexp": "^\\[watch\\] checking (\\S+)$", "file": 1 },
+          "endsPattern": "^\\[watch\\] done$"
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "track",
+      "type": "pickString",
+      "description": "Which track?",
+      "options": ["lean", "dafny", "verus"]
+    }
+  ]
+}
