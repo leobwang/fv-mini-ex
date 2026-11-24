@@ -1,0 +1,35 @@
+{
+  // Keep the toolchains (Mathlib alone is ~9 GB) out of the explorer and the file watcher.
+  "files.exclude": {
+    ".toolchain": true,
+    "lean/.lake": true,
+    "**/__pycache__": true
+  },
+  "files.watcherExclude": {
+    ".toolchain/**": true,
+    "lean/.lake/**": true
+  },
+  // Keep reference solutions out of search and Cmd+P; open them from the explorer.
+  "search.exclude": {
+    "**/solutions": true
+  },
+
+  // Editor and ./check share one Dafny and one resource limit. The extension resolves
+  // a relative cliPath against its own install dir (<home>/.vscode*/extensions/<ext>/)
+  // and expands no variables, so this assumes the repo is at ~/code/learn/fv-mini-ex.
+  // Moved it? Change the path. The extension also refuses to start without `dotnet`
+  // on PATH, even though this Dafny doesn't run on it (see README).
+  "dafny.version": "custom",
+  "dafny.cliPath": "../../../code/learn/fv-mini-ex/.toolchain/dafny/dafny",
+  "dafny.dafnyServerArguments": ["--resource-limit=10000000"],
+
+  // verus/ has no Cargo.toml, and rust-analyzer can't read `verus!` anyway.
+  "rust-analyzer.initializeStopped": true,
+
+  // Verus only reads saved files, so save .rs files soon after typing stops. The
+  // "Watch Verus" task in tasks.json then re-checks them.
+  "[rust]": {
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 500
+  }
+}

@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Re-run tools/check-file on a Verus problem each time it is saved.
+
+Started by the "Watch Verus" task in VS Code. The [watch] lines bracket each run
+so the task's problem matcher knows which file's errors to replace. If several
+files change at once (a git checkout, say), only the newest is checked.
+"""
+from __future__ import annotations
+
+import subprocess
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+POLL_SECONDS = 0.5
+
+
+def snapshot() -> dict[Path, int]:
+    out = {}
+    for p in (ROOT / "verus").rglob("*.rs"):
+        try:
+            out[p] = p.stat().st_mtime_ns
+        except FileNotFoundError:
+            pass
+    return out
+
+
+def main() -> None:
+    seen = snapshot()
+    print("[watch] watching verus/", flush=True)
+    while True:
+        time.sleep(POLL_SECONDS)
+        now = snapshot()
+        changed = [p for p, t in now.items() if seen.get(p) != t]
+        seen = now
+        if changed:
+            rel = max(changed, key=now.__getitem__).relative_to(ROOT)
+            print(f"[watch] checking {rel}", flush=True)
+            subprocess.run([str(ROOT / "tools" / "check-file"), str(rel)], cwd=ROOT)
+            print("[watch] done", flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
