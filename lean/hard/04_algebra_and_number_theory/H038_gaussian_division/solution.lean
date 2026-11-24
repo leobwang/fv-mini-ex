@@ -4,24 +4,26 @@ GOAL
   `N(s + t·i) = s² + t²`: if `b ≠ 0` then `a = b * q + r` with `N r < N b`. Build `q` by rounding.
   (`GaussianInt` is `ℤ√(-1)`, Mathlib's `Zsqrtd (-1)`: a structure with integer fields `.re`, `.im`.)
 
-REFERENCE
-  example : GaussianInt := ⟨3, 4⟩   -- 3 + 4i (anonymous constructor ⟨re, im⟩)
-  #check Zsqrtd.norm_def            -- n.norm = n.re * n.re - d * n.im * n.im   (here d = -1)
-  #check Zsqrtd.norm_mul            -- (n * m).norm = n.norm * m.norm
-  #check Zsqrtd.norm_conj           -- (star x).norm = x.norm   (`star x` is the conjugate re - im·i)
-  #check Zsqrtd.norm_eq_mul_conj    -- ((n.norm : ℤ) : ℤ√d) = n * star n
-  #check GaussianInt.norm_pos       -- 0 < x.norm ↔ x ≠ 0
-  #check Int.emod_add_mul_ediv      -- a % b + b * (a / b) = a
-  #check Int.emod_nonneg            -- b ≠ 0 → 0 ≤ a % b    (and `Int.emod_lt_of_pos : 0 < b → a % b < b`)
-  #check sq_abs                     -- |a| ^ 2 = a ^ 2
-  -- `ring` works in `GaussianInt`; `simp` knows `Zsqrtd.re_mul`, `Zsqrtd.re_star`, `Zsqrtd.re_sub`, ...
 BANNED: GaussianInt.norm_mod_lt, GaussianInt.natAbs_norm_mod_lt, GaussianInt.mod_def, GaussianInt.div_def, GaussianInt.normSq_div_sub_div_lt_one, GaussianInt.norm_le_norm_mul_left, EuclideanDomain.div_add_mod, EuclideanDomain.mod_add_div, EuclideanDomain.mod_add_div', EuclideanDomain.div_add_mod', EuclideanDomain.remainder_lt, EuclideanDomain.mod_lt, exact?, apply?, try?, hint
-NOTE: `GaussianInt` already has `/` and `%`, but their lemmas are banned: construct `q` yourself.
+
+GUIDE
+  Entries R1–R22: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace H038
 
+/- SKELETON · round_int   (MILESTONE: prove it first; used twice in div_mod, step 2)
+  1. Put the three facts about `u % n` and `u / n` in the context:                    R1, R2, R3
+  2. Split on whether the remainder is at most half of `n`: `h : 2 * (u % n) ≤ n`:     R4
+  3. case pos: witness `u / n` (`refine ⟨_, ?_⟩`); rewrite `u - n * (u / n)` to `u % n`,
+     drop `|·|` with `h1`, close with `h`:                                            R6 (R5 inside) → R7
+  4. case neg: witness `u / n + 1`; flip `h`; rewrite `u - n * (u / n + 1)` to `u % n - n`,
+     drop `|·|` (the remainder minus `n` is negative), close:                         R8 → R6 → R9 → R5
+-/
 -- MILESTONE (optional: change or delete)
 /-- Every integer `u` is within `n / 2` of a multiple of `n`. -/
 theorem round_int (n u : ℤ) (hn : 0 < n) : ∃ s : ℤ, 2 * |u - n * s| ≤ n := by
@@ -37,12 +39,23 @@ theorem round_int (n u : ℤ) (hn : 0 < n) : ∃ s : ℤ, 2 * |u - n * s| ≤ n 
     rw [show u - n * (u / n + 1) = u % n - n by linarith, abs_of_neg (by linarith)]
     linarith
 
+/- SKELETON · mul_conj_sub   (MILESTONE: used by norm_mul_norm, step 3)
+  1. Replace the cast norm `↑b.norm` by `b * star b`:                                  R10
+  2. Now a ring identity in `ℤ√(-1)`:                                                   R11
+-/
 -- MILESTONE (optional: change or delete)
 theorem mul_conj_sub (a b q : GaussianInt) :
     (a - b * q) * star b = a * star b - (b.norm : GaussianInt) * q := by
   rw [Zsqrtd.norm_eq_mul_conj]
   ring
 
+/- SKELETON · norm_mul_norm   (MILESTONE: prove after mul_conj_sub; it is `key` in div_mod, step 4)
+  1. Write `b.norm` as `(star b).norm` so the left side is a product of two norms:      R12
+  2. Merge it into one norm `((a - b * ⟨s, t⟩) * star b).norm`:                         R13
+  3. Rewrite the argument with the milestone: `rw [mul_conj_sub]`
+  4. Expand the norm into coordinates, compute `.re` and `.im`:                         R14 → R15
+  5. What is left is an integer identity (`u * u` versus `u ^ 2`):                      R11
+-/
 -- MILESTONE (optional: change or delete)
 theorem norm_mul_norm (a b : GaussianInt) (s t : ℤ) :
     (a - b * ⟨s, t⟩).norm * b.norm
@@ -51,6 +64,18 @@ theorem norm_mul_norm (a b : GaussianInt) (s t : ℤ) :
   simp
   ring
 
+/- SKELETON · div_mod
+  Prove the MILESTONES first: round_int (step 2), mul_conj_sub (inside norm_mul_norm), norm_mul_norm (step 4).
+  1. `hN : 0 < b.norm` from `hb`:                                                       R16
+  2. Round the coordinates of `a * star b` to multiples of `b.norm`: `round_int` twice
+     (`round_int b.norm (a * star b).re hN`, then with `.im`), unpacked into `s, hs` and `t, ht`:
+                                                                                        R17, R17
+  3. Witnesses `q := ⟨s, t⟩`, `r := a - b * ⟨s, t⟩`; the equation `a = b * q + r`:       R18 (R11 inside)
+  4. `key := norm_mul_norm a b s t`
+  5. From `hs`: `hs2 : 4 * ((a * star b).re - b.norm * s) ^ 2 ≤ b.norm ^ 2`, and `ht2` from `ht`:
+     square the bound on `|·|`:                                                         R19, R20 → R21
+  6. Assume the norm bound fails, flip the `¬<`, combine `key hs2 ht2 hN`:              R22 → R8 → R21
+-/
 -- BEGIN SPEC
 theorem div_mod (a b : GaussianInt) (hb : b ≠ 0) :
     ∃ q r : GaussianInt, a = b * q + r ∧ r.norm < b.norm :=
@@ -73,7 +98,14 @@ theorem div_mod (a b : GaussianInt) (hb : b ≠ 0) :
 end H038
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Over ℂ you would take `q ≈ a / b = a·b̄ / N(b)`. Stay in ℤ: round each coordinate of `w = a * star b` to the nearest multiple of `N = b.norm`, i.e. `w.re ≈ N * s`, `w.im ≈ N * t`, and set `q = ⟨s, t⟩`, `r = a - b * q`.
-H2. Then `r * star b = w - N * q`, so `N(r) * N = (w.re - N s)² + (w.im - N t)²`, and each square is at most `N² / 4`. Rounding: take `s = u / n` if `2 * (u % n) ≤ n`, else `u / n + 1`.
-H3. `norm_mul_norm`: `rw [← Zsqrtd.norm_conj b, ← Zsqrtd.norm_mul, mul_conj_sub, Zsqrtd.norm_def]; simp; ring` (and `mul_conj_sub` is `rw [Zsqrtd.norm_eq_mul_conj]; ring`). Finish with `4 * sq ≤ N ^ 2` from `sq_abs` + `nlinarith`, then `by_contra` and `nlinarith`.
+H1. Over ℂ you would take `q ≈ a / b = a·b̄ / N(b)`. Stay in ℤ: with `N = b.norm` and `w = a * star b`,
+    round each coordinate of `w` to a multiple of `N` (`round_int`: `w.re ≈ N * s`, `w.im ≈ N * t`), and set
+    `q = ⟨s, t⟩`, `r = a - b * q`. Do not use `/` or `%` of `GaussianInt`: their lemmas are banned.
+H2. Order: `round_int` (R1–R9: take `s = u / n` if `2 * (u % n) ≤ n`, else `u / n + 1`), `mul_conj_sub`
+    (R10, R11: `r * star b = w - N * q`), `norm_mul_norm` (R12–R15, R11: `N(r) * N = (w.re - N s)² + (w.im - N t)²`).
+    In `div_mod` each square is at most `N² / 4`, so `N(r) * N ≤ N² / 2`, which contradicts `N ≤ N(r)` and `0 < N`.
+H3. `norm_mul_norm`: `rw [← Zsqrtd.norm_conj b, ← Zsqrtd.norm_mul, mul_conj_sub, Zsqrtd.norm_def]; simp; ring`.
+    `div_mod`: `refine ⟨⟨s, t⟩, a - b * ⟨s, t⟩, by ring, ?_⟩`, then
+    `have hs2 : 4 * ((a * star b).re - b.norm * s) ^ 2 ≤ b.norm ^ 2 := by nlinarith [sq_abs (…), abs_nonneg (…)]`
+    with `…` the same difference, likewise `ht2`, and finish `by_contra hge; push Not at hge; nlinarith`.
 -/

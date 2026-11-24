@@ -4,21 +4,11 @@ GOAL
   energies `E_n = ε (n + 1/2)`. With `β = 1 / (kB T)`, prove `Z = 1 / (2 sinh (βε/2))` and
   `⟨E⟩ = ε/2 + ε / (e^{βε} - 1)`: zero-point energy plus `ε` times the Planck (Bose) occupation.
 
-REFERENCE
-  #check CanonicalEnsemble.partitionFunction_def  -- Z T = Z_math T / phaseSpaceunit ^ dof   (here `rw [show (qho ε).dof = 0 from rfl]`)
-  #check CanonicalEnsemble.mathematicalPartitionFunction_eq_integral  -- Z_math T = ∫ i, exp (-↑T.β * E i) ∂𝓒.μ
-  #check CanonicalEnsemble.meanEnergy_eq_ratio_of_integrals  -- ⟨E⟩ = (∫ i, E i * exp (-↑T.β * E i) ∂𝓒.μ) / ∫ i, exp (…) ∂𝓒.μ
-  #check MeasureTheory.integral_countable    -- Integrable f μ → ∫ x, f x ∂μ = ∑' x, μ.real {x} • f x   (`μ.real {x}` = measure of `{x}` as a real; 1 for `Measure.count`)
-  #check MeasureTheory.integrable_count_iff  -- Integrable f Measure.count ↔ Summable (fun x => ‖f x‖)
-  #check tsum_geometric_of_lt_one  -- 0 ≤ r → r < 1 → ∑' n, r ^ n = (1 - r)⁻¹   (`summable_geometric_of_lt_one`: Summable)
-  #check tsum_coe_mul_geometric_of_norm_lt_one   -- ‖r‖ < 1 → ∑' n, n * r ^ n = r / (1 - r) ^ 2
-  #check summable_pow_mul_geometric_of_norm_lt_one  -- (k : ℕ) → ‖r‖ < 1 → Summable (fun n => n ^ k * r ^ n)
-  #check Summable.tsum_add  -- Summable f → Summable g → ∑' (f + g) = ∑' f + ∑' g;  also `tsum_mul_left`, `Summable.mul_left`
-  #check Real.exp_nat_mul   -- exp (n * x) = exp x ^ n
-  #check Real.sinh_eq       -- sinh x = (exp x - exp (-x)) / 2
-  `∑' n, f n` is the infinite sum (`tsum`); it equals the true sum only when `Summable f` (else it is 0).
-NOTE: `(qho ε).μ = Measure.count` is `rfl`; `T.val`, `T.β : ℝ≥0` (nonnegative reals) and `↑T.β` = `(T.β : ℝ)`
-  is the cast to ℝ; `Temperature.beta_pos : 0 < T.val → 0 < (T.β : ℝ)`.
+GUIDE
+  Entries R1–R43: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.StatisticalMechanics.CanonicalEnsemble.Lemmas
 
@@ -35,27 +25,79 @@ noncomputable def qho (ε : ℝ) : CanonicalEnsemble ℕ where
   energy_measurable := by fun_prop
 -- END SPEC
 
+/- SKELETON · weight_eq   (MILESTONE 1: used in both spec theorems to rewrite the Boltzmann weight)
+  1. Fold the right side into one exponential: the power, then the product     R1, R2   (both `rw [← …]`)
+  2. Unfold the energy of `qho ε`                                               R3
+  3. Both sides are now `rexp (…)` of ring-equal arguments                      R4
+-/
 -- MILESTONE (optional: change or delete)
 theorem weight_eq (ε β : ℝ) (n : ℕ) :
     Real.exp (-β * (qho ε).energy n) = Real.exp (-(β * ε) / 2) * Real.exp (-(β * ε)) ^ n := by
   sorry
 
+/- SKELETON · integral_count_eq_tsum   (MILESTONE 2: integral over ℕ → sum; used in both spec theorems)
+  1. Integral → sum, leaving integrability as a `?_` goal:
+       rw [integral_countable (integrable_count_iff.mpr ?_)]                   R5, R6
+  2. Main goal: the point weight `count.real {x}` is 1                          R7
+  3. The `?_` goal `Summable fun x => ‖f x‖`: from `hf.abs`, with ‖·‖ = |·|     R8, R9 inside R10
+-/
 -- MILESTONE (optional: change or delete)
 theorem integral_count_eq_tsum {f : ℕ → ℝ} (hf : Summable f) :
     ∫ n, f n ∂(Measure.count : Measure ℕ) = ∑' n, f n := by
   sorry
 
+/- SKELETON · tsum_weight   (MILESTONE 3: the series for Z; used in `qho_partitionFunction`)
+  1. Fact `hr1 : Real.exp (-x) < 1`                                             R11, R12
+  2. Pull the constant out of the sum                                           R14
+  3. Sum the geometric series (its `0 ≤ r` from R13)                            R15
+  4. `a * b⁻¹ = a / b` closes it                                                R16 (reversed: `.symm`)
+-/
 -- MILESTONE (optional: change or delete)
 theorem tsum_weight (x : ℝ) (hx : 0 < x) :
     ∑' n : ℕ, Real.exp (-x / 2) * Real.exp (-x) ^ n = Real.exp (-x / 2) / (1 - Real.exp (-x)) := by
   sorry
 
+/- SKELETON · qho_partitionFunction
+  Prove the three MILESTONES above first: steps 5 and 6 use them.
+  1. `hβ : 0 < (T.β : ℝ)`                                                       R17
+  2. Unfold Z:  R18 → R19, then `(qho ε).dof = 0` and the trivial power          R20 → R21
+  3. Name `x = βε`; `hx0 : 0 < x` by `rw [← hx]` then                           R22, R23
+  4. Facts: `hr1 : Real.exp (-x) < 1` (R11, R12) and
+       `hsum : Summable fun n : ℕ => Real.exp (-x / 2) * Real.exp (-x) ^ n`    R24 (+ R13), R25
+  5. `hw : ∀ n, <weight of n> = Real.exp (-x / 2) * Real.exp (-x) ^ n`  (weight_eq, `rw [hx]`);
+     restate the goal with `∂Measure.count` (R26), then rewrite under `∫ n, …`  R27
+  6. rw [integral_count_eq_tsum hsum, tsum_weight x hx0], then sinh             R28
+  7. Algebra, with `c = Real.exp (-x / 2)`:
+       `hcc : Real.exp (x / 2) * Real.exp (-x / 2) = 1`                        R2, ring_nf, R29
+       `hrc : Real.exp (-x) = Real.exp (-x / 2) * Real.exp (-x / 2)`           R2, R4
+       match the forms: rw [show -(x / 2) = -x / 2 by ring, hrc]               R30
+       `0 < c`, `c < 1` (R13, R11), then name `c` everywhere                   R31
+       `1 - c ^ 2 ≠ 0`, `Real.exp (x / 2) - c ≠ 0`                             R32
+       clear denominators, finish with `hcc`                                    R33 → R34
+-/
 -- BEGIN SPEC
 theorem qho_partitionFunction (ε : ℝ) (hε : 0 < ε) (T : Temperature) (hT : 0 < T.val) :
     (qho ε).partitionFunction T = 1 / (2 * Real.sinh ((T.β : ℝ) * ε / 2)) :=
 -- END SPEC
   sorry
 
+/- SKELETON · qho_meanEnergy
+  Uses MILESTONES 1 and 2 (weight_eq, integral_count_eq_tsum).
+  1. `hβ`                                                                       R17
+  2. ⟨E⟩ → ratio of integrals (R35); restate both integrals with `∂Measure.count`  R26
+  3. `hE : ∀ n : ℕ, (qho ε).energy n = ε * (n + 1 / 2)` (`rfl`); rewrite
+     `weight_eq` and `hE` under the binders                                    R27
+  4. Name `x = βε` and prove `0 < x`                                            R22, R23
+  5. `set r := Real.exp (-x)`, `set c := Real.exp (-x / 2)`                     R36
+  6. Facts: `0 ≤ r` (R13), `r < 1` (R11, R12), `‖r‖ < 1` (R9 → R37 → R38),
+     `Summable fun n => r ^ n` (R24), `Summable fun n => (n : ℝ) * r ^ n`      R39
+  7. Split the numerator term: `ε (n + 1/2) (c rⁿ) = ε c (n rⁿ) + (ε c / 2) rⁿ`  (`ring`), R27
+  8. Both integrals → sums with `integral_count_eq_tsum` (summability: R25, R40);
+     then split and evaluate:                                                  R41 → R14 (×3) → R42 → R15
+  9. Facts: `0 < c` (R13), `0 < 1 - r` (R12), `hex : Real.exp x * r = 1`
+     (`rw [hr]`, R2, `simp`), `0 < Real.exp x - 1`                              R43
+ 10. Clear denominators, then close with `hex`                                 R33 → R32 (`nlinarith [hex]`)
+-/
 -- BEGIN SPEC
 theorem qho_meanEnergy (ε : ℝ) (hε : 0 < ε) (T : Temperature) (hT : 0 < T.val) :
     (qho ε).meanEnergy T = ε / 2 + ε / (Real.exp ((T.β : ℝ) * ε) - 1) :=
@@ -65,19 +107,15 @@ theorem qho_meanEnergy (ε : ℝ) (hε : 0 < ε) (T : Temperature) (hT : 0 < T.v
 end H094
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. With `x = βε > 0`, `c = e^{-x/2}` and `r = e^{-x} < 1`, the Boltzmann weight is `c · rⁿ`, so both
-    integrals over `ℕ` are geometric-type series: `Z = c / (1 - r)` and the numerator of `⟨E⟩` is
-    `ε c (∑ n rⁿ) + (ε c / 2)(∑ rⁿ)`. Everything after that is algebra with `e^{x} r = 1`, `r = c²`.
-H2. Turn `∫ · ∂count` into `∑'` with `integral_countable (integrable_count_iff.mpr _)`; the factor
-    `count.real {n}` is 1 (`simp [Measure.real]`), and absolute summability comes from `hf.abs`. `Z`:
-    `rw [partitionFunction_def, mathematicalPartitionFunction_eq_integral]`, then
-    `rw [show (qho ε).dof = 0 from rfl, pow_zero, div_one]`, `weight_eq`, `integral_count_eq_tsum`, `tsum_weight`, `Real.sinh_eq`.
-    `⟨E⟩`: `rw [meanEnergy_eq_ratio_of_integrals]` and write the numerator term as
-    `ε c (n rⁿ) + ε c / 2 · rⁿ`.
-H3. Name things with `generalize`/`set` (`set r := Real.exp (-x) with hr`) and state summability first:
-    `summable_geometric_of_lt_one hr0 hr1` and, with `hnr : ‖r‖ < 1`,
-    `by simpa using summable_pow_mul_geometric_of_norm_lt_one 1 hnr`.
-    Numerator: `rw [(hs1.mul_left _).tsum_add (hs0.mul_left _), tsum_mul_left, tsum_mul_left,
-    tsum_coe_mul_geometric_of_norm_lt_one hnr, tsum_geometric_of_lt_one hr0 hr1]`, then `field_simp` and
-    `nlinarith [hex]` with `hex : Real.exp x * r = 1`.
+H1. With `x = βε > 0`, `c = e^{-x/2}` and `r = e^{-x} < 1`, the Boltzmann weight is `c · rⁿ` (weight_eq), so
+    both integrals over `ℕ` are geometric-type series: `Z = c / (1 - r)`, and the numerator of `⟨E⟩` is
+    `ε c ∑ n rⁿ + (ε c / 2) ∑ rⁿ`. After that it is algebra with `e^{x} r = 1` and `r = c²`.
+H2. Prove the milestones first; every `∫ · ∂count` becomes `∑'` through `integral_count_eq_tsum`, which needs a
+    `Summable` fact you state beforehand (R24, R25, R39, R40). Unfold with R18 → R21 (Z) or R35 (⟨E⟩), change
+    `∂(qho ε).μ` to `∂Measure.count` with `show` (R26), and rewrite the weight under the binder with `simp_rw`
+    (R27). Name `x` (R22) and then `c`, `r` (R31 or R36) so `field_simp` (R33) sees a rational identity.
+H3. Z, end: `generalize Real.exp (-x / 2) = c at hcc hc0 hc1 ⊢`, then `field_simp` and `linear_combination hcc`
+    with `hcc : Real.exp (x / 2) * c = 1`. ⟨E⟩, middle: `rw [(hs1.mul_left _).tsum_add (hs0.mul_left _),
+    tsum_mul_left, tsum_mul_left, tsum_mul_left, tsum_coe_mul_geometric_of_norm_lt_one hnr,
+    tsum_geometric_of_lt_one hr0 hr1]`; end: `field_simp` and `nlinarith [hex]` with `hex : Real.exp x * r = 1`.
 -/

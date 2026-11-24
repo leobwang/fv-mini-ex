@@ -3,22 +3,29 @@ GOAL
   Build by hand the homomorphism `G →* Equiv.Perm G` sending `g` to the permutation `x ↦ g * x`,
   then prove it injective: every group embeds in a group of permutations (Cayley's theorem).
 
-REFERENCE
-  -- `Equiv.Perm G` is `G ≃ G`: `toFun`, `invFun`, `left_inv : ∀ x, invFun (toFun x) = x`, `right_inv`
-  example : ℤ ≃ ℤ := { toFun := fun x => x + 1, invFun := fun x => x - 1, left_inv := fun x => by simp, right_inv := fun x => by simp }
-  -- `G →* M` is a structure too: `{ toFun := _, map_one' := _, map_mul' := _ }`
-  example (σ τ : Equiv.Perm ℕ) (h : ∀ x, σ x = τ x) : σ = τ := Equiv.ext h   -- tactic form: `ext x`
-  example (σ τ : Equiv.Perm ℕ) (x : ℕ) : (σ * τ) x = σ (τ x) := rfl   -- `*` is composition, `1` is id
-  #check inv_mul_cancel_left   -- a⁻¹ * (a * b) = b     (mul_inv_cancel_left : a * (a⁻¹ * b) = b)
-  #check mul_assoc             -- a * b * c = a * (b * c)
-  example (f g : ℕ → ℕ) (h : f = g) : f 1 = g 1 := congrArg (fun φ => φ 1) h   -- apply both sides
 BANNED: MulAction.toPermHom, MulAction.toPerm, Equiv.mulLeft, Equiv.mulRight, Equiv.mulLeft₀, Equiv.constSMulHom, Equiv.constSMul, MonoidHom.toHomPerm, MulAction.toEndHom, exact?, apply?, rw?, hint, try?
-NOTE: search tactics (`exact?`, `try?`, ...) are fine for exploring, but they close goals with banned terms, so they cannot stay.
+
+GUIDE
+  Entries R1–R16: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace M060
 
+/- SKELETON · leftMul
+  1. The outer structure, a homomorphism; its `toFun g` is the inner one:   R5
+  2. The inner structure, the permutation x ↦ g * x with inverse x ↦ g⁻¹ * x:   R1
+       left_inv:  R2, then `exact` with R3 applied to g and x   (or the term `fun x => …` with R3)
+       right_inv: R2, then `exact` with R4 likewise
+       (not `rw`: after R2 the goal is still `(fun x => g⁻¹ * x) ((fun x => g * x) x) = x`)
+     One `refine` with all four `?_` gives the goals in the order of steps 2–4.
+  3. map_one': an equation of permutations. Pointwise, then evaluate:      R6, then `simp` (R7, R8, R9)
+  4. map_mul': introduce the two factors, pointwise, evaluate, reassociate:
+       intro a b (or `fun a b => by …`), R6, then `simp` with R11 named (R7, R10, R11)
+-/
 -- BEGIN SPEC
 def leftMul {G : Type*} [Group G] : G →* Equiv.Perm G :=
 -- END SPEC
@@ -30,11 +37,19 @@ def leftMul {G : Type*} [Group G] : G →* Equiv.Perm G :=
     map_one' := by ext x; simp
     map_mul' := fun a b => by ext x; simp [mul_assoc] }
 
+/- SKELETON · leftMul_apply
+  1. Both sides unfold to `g * x` (true only for the structure-instance definition):   R12
+-/
 -- BEGIN SPEC
 theorem leftMul_apply {G : Type*} [Group G] (g x : G) : leftMul g x = g * x :=
 -- END SPEC
   rfl
 
+/- SKELETON · cayley
+  1. Open the injectivity statement: a b, h : leftMul a = leftMul b, goal a = b:   R13
+  2. Evaluate the permutation equation h at the point 1:                           R14
+  3. Simplify `this` with leftMul_apply (Part 2) and mul_one, and close:           R15 inside R16
+-/
 -- BEGIN SPEC
 theorem cayley {G : Type*} [Group G] : Function.Injective (leftMul (G := G)) :=
 -- END SPEC
@@ -48,8 +63,10 @@ end M060
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. Two nested structures: the outer `MonoidHom`'s `toFun g` is itself an `Equiv`. The inverse of
     "multiply by `g` on the left" is "multiply by `g⁻¹` on the left". `leftMul_apply` is then `rfl`.
-H2. `map_one'` and `map_mul'` are equalities of permutations: prove them with `ext x` and `simp`
-    (add `mul_assoc` for `map_mul'`). For `cayley`, evaluate both permutations at `1`.
-H3. The inner permutation: `{ toFun := fun x => g * x, invFun := fun x => g⁻¹ * x, left_inv := ?_, right_inv := ?_ }`.
-    `cayley`: `intro a b h; have := congrArg (fun σ : Equiv.Perm G => σ 1) h`, then simplify `this` with `leftMul_apply`.
+    For `cayley`, two permutations that are equal agree at every point, in particular at `1`.
+H2. The inverse laws are R3 and R4 applied to `g` and `x`. `map_one'` and `map_mul'` are equations of
+    permutations: `ext x` and `simp` (add `mul_assoc` for `map_mul'`). For `cayley`, `intro a b h`,
+    evaluate `h` at `1` with `congrArg`, and simplify with `leftMul_apply`.
+H3. The inner permutation: `{ toFun := fun x => g * x, invFun := fun x => g⁻¹ * x, left_inv := fun x => inv_mul_cancel_left g x, right_inv := ?_ }`.
+    `cayley`: `intro a b h; have := congrArg (fun σ : Equiv.Perm G => σ 1) h`, then `simpa [leftMul_apply] using this`.
 -/

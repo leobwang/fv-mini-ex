@@ -4,16 +4,11 @@ GOAL
   `i ~ i+1`, with energy `E(σ) = -J ∑_i s(σ i) s(σ (i+1))`. For a ferromagnet (`J ≥ 0`) the least
   energy over all configurations is `-J n`, and it is attained (by the all-up state).
 
-REFERENCE
-  example (s : Set ℝ) (a : ℝ) : IsLeast s a ↔ a ∈ s ∧ ∀ x ∈ s, a ≤ x := Iff.rfl  -- attained + lower bound
-  example (f : ℕ → ℝ) : f 3 ∈ Set.range f := ⟨3, rfl⟩     -- members of a range: `⟨witness, proof⟩`
-  -- `rintro _ ⟨σ, rfl⟩` introduces an arbitrary element `energy J σ` of `Set.range (energy J)`
-  #check Finset.sum_le_sum  -- (∀ i ∈ s, f i ≤ g i) → ∑ i ∈ s, f i ≤ ∑ i ∈ s, g i
-  example (n : ℕ) : ∑ _i : Fin n, (1 : ℝ) = n := by simp
-  example (a b : Bool) : a = b ∨ a ≠ b := by cases a <;> cases b <;> simp   -- all 4 Bool cases
-  example (J S n : ℝ) (hJ : 0 ≤ J) (h : S ≤ n) : -J * n ≤ -J * S := by nlinarith
-  `i.castSucc, i.succ : Fin (n + 1)` are the two ends of bond `i : Fin n` (sites `i` and `i + 1`).
-  #check (energy 1 (n := 3) : (Fin 4 → Bool) → ℝ)  -- `(n := 3)` fills the implicit length `n` by name
+GUIDE
+  Entries R1–R12: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -28,6 +23,16 @@ noncomputable def energy (J : ℝ) {n : ℕ} (σ : Fin (n + 1) → Bool) : ℝ :
   -J * ∑ i : Fin n, spin (σ i.castSucc) * spin (σ i.succ)
 -- END SPEC
 
+/- SKELETON · ground_state
+  1. Split `IsLeast` into "attained" and "lower bound":                      R1
+  2. Attained: the all-up witness `fun _ => true`, then evaluate its energy:  R2, then `simp [energy, spin]` (R3 → R4 → R5)
+  3. Lower bound: take an arbitrary element `energy J σ` of the range:       R6
+  4. Prove the bond bound first
+       hb : ∀ a b : Bool, spin a * spin b ≤ 1                               `intro a b`, R7 (on `a` and `b`, with `<;>`), R8
+  5. Prove the bond-sum bound
+       hsum : ∑ i : Fin n, spin (σ i.castSucc) * spin (σ i.succ) ≤ n        R9: first step R10 (with hb), second step R5
+  6. Expose the energy's formula, then combine `hJ` and `hsum`:              R11 → R12
+-/
 -- BEGIN SPEC
 theorem ground_state (J : ℝ) (hJ : 0 ≤ J) (n : ℕ) :
     IsLeast (Set.range (energy J (n := n))) (-J * n) :=
@@ -37,9 +42,11 @@ theorem ground_state (J : ℝ) (hJ : 0 ≤ J) (n : ℕ) :
 end M164
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Two jobs: show `-J * n` is the energy of some configuration, and that every energy is `≥ -J * n`.
-H2. Witness: the all-up state `fun _ => true` (`simp [energy, spin]`). Lower bound: every bond
-    product `spin a * spin b` is at most 1, so the bond sum is at most `n`; multiply by `-J ≤ 0`.
+H1. `IsLeast` is two jobs (R1): `-J * n` is the energy of some configuration, and every energy is
+    `≥ -J * n`.
+H2. Witness: the all-up state `fun _ => true`, whose energy `simp [energy, spin]` evaluates (R2–R5).
+    Lower bound: after `rintro _ ⟨σ, rfl⟩` (R6), each bond product `spin a * spin b` is at most 1
+    (four `Bool` cases), so the bond sum is at most `n` (R9, R10, R5); multiply by `-J ≤ 0` (R11, R12).
 H3. `have hb : ∀ a b : Bool, spin a * spin b ≤ 1 := by intro a b; cases a <;> cases b <;> norm_num [spin]`,
     then `calc ∑ i : Fin n, ... ≤ ∑ _i : Fin n, (1 : ℝ) := Finset.sum_le_sum fun i _ => hb _ _`
     `_ = n := by simp`, and finish with `unfold energy; nlinarith`.

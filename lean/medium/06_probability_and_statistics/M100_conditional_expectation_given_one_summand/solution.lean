@@ -4,17 +4,11 @@ GOAL
   `E[X + Y | X] = X + E[Y]` and `E[X Y | X] = X · E[Y]`, almost everywhere. Known parts come out,
   independent parts become their mean.
 
-REFERENCE
-  `μ[f | m]`: conditional expectation of `f` given the σ-algebra `m`; `MeasurableSpace.comap X inferInstance`
-  is `σ(X)`; `f =ᵐ[μ] g`: `f ω = g ω` for μ-almost every `ω`; `μ[Y]` = `∫ ω, Y ω ∂μ`.
-  #check @Measurable.comap_le              -- Measurable X → σ(X) ≤ mΩ   (σ(X) is a sub-σ-algebra)
-  #check @comap_measurable                 -- X is measurable for σ(X); `.stronglyMeasurable` upgrades it
-  #check @condExp_of_stronglyMeasurable    -- f is m-measurable, integrable → μ[f | m] = f
-  #check @condExp_indep_eq                 -- f is m₁-measurable, Indep m₁ m₂ μ → μ[f | m₂] =ᵐ fun _ => μ[f]
-  #check @condExp_add                      -- μ[f + g | m] =ᵐ[μ] μ[f | m] + μ[g | m]
-  #check @condExp_mul_of_stronglyMeasurable_left  -- f is m-measurable → μ[f * g | m] =ᵐ[μ] f * μ[g | m]
-  #check @IndepFun_iff_Indep               -- X ⟂ᵢ[μ] Y (independent) ↔ Indep σ(X) σ(Y) μ; `.symm` swaps
-  `h₁.trans h₂` chains `=ᵐ`; `filter_upwards [h] with ω hω` turns an `=ᵐ` goal into a pointwise one.
+GUIDE
+  Entries R1–R13: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -33,6 +27,19 @@ theorem known_and_indep {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω
     condExp_indep_eq hY.comap_le hX.comap_le (comap_measurable Y).stronglyMeasurable
       ((IndepFun_iff_Indep _ _ _).mp hXY).symm⟩
 
+/- SKELETON · condExp_add_given_first
+  Write σ(X) for `MeasurableSpace.comap X inferInstance`.
+  1. Facts first, as `have`s (or one helper lemma shared with the product theorem):
+       sub-σ-algebras  hX.comap_le : σ(X) ≤ mΩ,  hY.comap_le : σ(Y) ≤ mΩ          R1
+       hXm : StronglyMeasurable[σ(X)] X        (write the type out)              R2 → R3
+       h2 : μ[Y | σ(X)] =ᵐ[μ] fun _ => μ[Y]    Y averages out:
+              R6 with f := Y, m₁ := σ(Y), m₂ := σ(X); Y's measurability R2 → R3;
+              independence in the order Indep σ(Y) σ(X) μ                        R4 → R5
+       h1 : μ[X | σ(X)] = X                    X is known                        R7 (with R1, hXm)
+  2. Split the conditional expectation of the sum (an =ᵐ, so not `rw`):          R9 through R8
+  3. Go pointwise, taking h2 along:                                              R11
+  4. Unfold the sum of functions, then substitute h1 and hω:                     R12, rw [h1, hω]
+-/
 -- BEGIN SPEC
 theorem condExp_add_given_first {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω)
     [IsProbabilityMeasure μ] (X Y : Ω → ℝ) (hX : Measurable X) (hY : Measurable Y)
@@ -47,6 +54,13 @@ theorem condExp_add_given_first {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Me
     filter_upwards [h2] with ω hω
     simp [h1, hω]
 
+/- SKELETON · condExp_mul_given_first
+  1. The same facts hXm and h2 as above (a `have` belongs to one proof only):    R1, R2 → R3, R4 → R5, R6
+     No h1 here: the known factor X is pulled out, not averaged.
+  2. Pull the known factor X out of the conditional expectation:                 R10 through R8
+  3. Go pointwise, taking h2 along:                                              R11
+  4. Unfold the product of functions, then substitute hω:                        R13, rw [hω]
+-/
 -- BEGIN SPEC
 theorem condExp_mul_given_first {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω)
     [IsProbabilityMeasure μ] (X Y : Ω → ℝ) (hX : Measurable X) (hY : Measurable Y)
@@ -63,9 +77,14 @@ end M100
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. Three facts: `μ[X | σ(X)] = X` (X is known), `μ[Y | σ(X)] =ᵐ fun _ => μ[Y]` (Y is independent of
-    σ(X)), and pull-out for the product. Prove the first two as `have`s (maybe as a helper lemma).
-H2. For `condExp_indep_eq` take `m₁ = σ(Y)`, `m₂ = σ(X)`: the independence you need is
-    `Indep σ(Y) σ(X)`, i.e. `((IndepFun_iff_Indep _ _ _).mp hXY).symm`.
-H3. Sum: `refine (condExp_add hXi hYi _).trans ?_; filter_upwards [h2] with ω hω; simp [h1, hω]`.
-    Product: `refine (condExp_mul_of_stronglyMeasurable_left hXm hXYi hYi).trans ?_` and the same finish.
+    σ(X)), and pull-out for the product. Prove the first two as `have`s before touching the goal
+    (or in a helper lemma both theorems use).
+H2. The condExp lemmas give `=ᵐ`, so chain them with `refine (lemma …).trans ?_`, then
+    `filter_upwards [h2] with ω hω` and finish at the point `ω`. For `condExp_indep_eq` take
+    `m₁ = σ(Y)`, `m₂ = σ(X)`: the independence it needs is `Indep σ(Y) σ(X)`, i.e.
+    `((IndepFun_iff_Indep _ _ _).mp hXY).symm`.
+H3. Sum: `refine (condExp_add hXi hYi _).trans ?_; filter_upwards [h2] with ω hω; simp [h1, hω]`
+    (or `rw [Pi.add_apply, h1, hω]`). Product:
+    `refine (condExp_mul_of_stronglyMeasurable_left hXm hXYi hYi).trans ?_` and the same finish
+    without `h1`.
 -/

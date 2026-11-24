@@ -4,19 +4,11 @@ GOAL
   overlap `⟨(P⊗1)Φ, (Q⊗1)Φ⟩ = tr(Pᴴ Q) / n`, `n = Fintype.card d`; then for `d = Fin 2` the four encodings
   `Z^b₁ X^b₂` are orthonormal, so Bob decodes two bits from one qubit. Expect one helper lemma (MILESTONE).
 
-REFERENCE
-  -- `Ket.MES d : Ket (d × d)` is Φ = (1/√n) ∑ᵢ |i, i⟩ with n = `Fintype.card d`; `.vec` is its amplitude function.
-  example {d : Type} [Fintype d] [Nonempty d] [DecidableEq d] (i j : d) : (Ket.MES d).vec (i, j) =
-      if i = j then ((Real.sqrt (Fintype.card d) : ℂ))⁻¹ else 0 := by simp [Ket.MES]
-  #check Matrix.star_mulVec            -- star (M *ᵥ v) = star v ᵥ* Mᴴ
-  #check Matrix.dotProduct_mulVec      -- v ⬝ᵥ (A *ᵥ w) = (v ᵥ* A) ⬝ᵥ w
-  #check Matrix.conjTranspose_kronecker -- (A ⊗ₖ B)ᴴ = Aᴴ ⊗ₖ Bᴴ
-  #check Matrix.mul_kronecker_mul      -- (A * B) ⊗ₖ (A' * B') = A ⊗ₖ A' * B ⊗ₖ B'   (rewrite with ←)
-  #check Matrix.trace                  -- A.trace = ∑ i, A i i
-  #check Finset.sum_ite_eq             -- ∑ j ∈ s, (if i = j then f j else 0) = if i ∈ s then f i else 0
-  example (n : ℝ) (h : 0 ≤ n) : Real.sqrt n * Real.sqrt n = n := Real.mul_self_sqrt h
-  #check Matrix.trace_fin_two          -- A.trace = A 0 0 + A 1 1   for 2×2 A
-NOTE: `star v ⬝ᵥ w` is the inner product ⟨v, w⟩; `Mᴴ` is the conjugate transpose; `(b.1 : ℕ)` turns a bit into 0 or 1.
+GUIDE
+  Entries R1–R38: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import QuantumInfo.States.Pure.Braket
 
@@ -25,6 +17,24 @@ open scoped Kronecker
 
 namespace M131
 
+/- SKELETON · mes_expect   (MILESTONE: prove it first; `sdc_overlap` ends with `rw [mes_expect]`)
+  0. Two helper lemmas of your own, stated above `mes_expect`:
+       MES_apply (i j : d) :
+         (Ket.MES d).vec (i, j) = if i = j then ((√(Fintype.card d) : ℝ) : ℂ)⁻¹ else 0
+                                                                            proof: R1
+       inv_sqrt_sq (n : ℕ) : ((√n : ℝ) : ℂ)⁻¹ * ((√n : ℝ) : ℂ)⁻¹ = (n : ℂ)⁻¹
+                                                                            proof: R2 → R3 → R4 (R5) → R6
+  1. One `simp only [...]` with, in this order of effect:
+       inner product and matrix–vector product → sums                      R7, R8 (then R7 again)
+       sums over pairs → double sums                                        R9
+       entries of `A ⊗ₖ B` and of `star Φ`                                  R10, R11
+       amplitudes of Φ → `if`s                                              MES_apply
+       `star`, then the factors, into the `if`s                             R12, R13, R14
+       indicator sums keep one term                                         R15
+  2. A second `simp only`: conjugate of the real `(√n)⁻¹`, scalar into sums R16 → R17 → R18, R19
+  3. Compare the double sums summand by summand                             R20 (nested twice)
+  4. `rw [← inv_sqrt_sq]` on the right side, then `ring`
+-/
 -- MILESTONE (optional: change or delete)
 /-- `⟨Φ, (A ⊗ B) Φ⟩ = (1/n) ∑ᵢⱼ Aᵢⱼ Bᵢⱼ` -/
 theorem mes_expect {d : Type} [Fintype d] [DecidableEq d] [Nonempty d] (A B : Matrix d d ℂ) :
@@ -32,6 +42,13 @@ theorem mes_expect {d : Type} [Fintype d] [DecidableEq d] [Nonempty d] (A B : Ma
       = ((Fintype.card d : ℂ))⁻¹ * ∑ i, ∑ j, A i j * B i j := by
   sorry
 
+/- SKELETON · sdc_overlap   (uses the MILESTONE `mes_expect`)
+  1. Move `P ⊗ 1` across the inner product, as its adjoint:                R21, R22 with ←, R23    (W1)
+  2. Merge the Kronecker products:                                          R24, R25, R26 with ←, R27 (W2)
+       goal now: star Φ ⬝ᵥ ((Pᴴ * Q) ⊗ₖ 1) *ᵥ Φ = n⁻¹ * (Pᴴ * Q).trace
+  3. rw [mes_expect]   (A := Pᴴ * Q, B := 1)
+  4. Identity entries → `if`s, collapse, trace as a sum: one `simp` with    R28, R29 (it adds R13, R15) (W3)
+-/
 -- BEGIN SPEC
 theorem sdc_overlap {d : Type} [Fintype d] [DecidableEq d] [Nonempty d] (P Q : Matrix d d ℂ) :
     star ((P ⊗ₖ (1 : Matrix d d ℂ)) *ᵥ (Ket.MES d).vec) ⬝ᵥ ((Q ⊗ₖ (1 : Matrix d d ℂ)) *ᵥ (Ket.MES d).vec)
@@ -51,6 +68,15 @@ noncomputable def sdc (b : Fin 2 × Fin 2) : Fin 2 × Fin 2 → ℂ :=
   (enc b ⊗ₖ 1) *ᵥ (Ket.MES (Fin 2)).vec
 -- END SPEC
 
+/- SKELETON · sdc_orthonormal   (uses `sdc_overlap`)
+  1. Unfold the received states:                                            R30 (unfold sdc)
+  2. rw [sdc_overlap]   goal: (↑(Fintype.card (Fin 2)))⁻¹ * ((enc b)ᴴ * enc c).trace = if b = c then 1 else 0
+  3. Split both messages into their bits:                                   R31, twice
+  4. 16 cases: `fin_cases` on all four bits, chained with `<;>`
+  5. Evaluate every case: `simp` with `enc, X, Z` and                       R33, R34, R35 (R36)
+       (it applies R32, R37, R38 by itself)                                                        (W4)
+  6. 3 of the 4 diagonal cases stop at `2⁻¹ * (1 + 1) = 1`:                norm_num
+-/
 -- BEGIN SPEC
 theorem sdc_orthonormal (b c : Fin 2 × Fin 2) :
     star (sdc b) ⬝ᵥ sdc c = if b = c then 1 else 0 :=
@@ -62,13 +88,18 @@ end M131
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. Move `P ⊗ 1` to the other side of the inner product (it becomes `Pᴴ ⊗ 1`) and merge it with `Q ⊗ 1`.
     What is left is `⟨Φ, (M ⊗ 1) Φ⟩` with `M = Pᴴ Q`: a double sum in which only diagonal terms survive.
-H2. `rw [Matrix.star_mulVec, ← Matrix.dotProduct_mulVec, Matrix.mulVec_mulVec, Matrix.conjTranspose_kronecker,
-    Matrix.conjTranspose_one, ← Matrix.mul_kronecker_mul, one_mul]`. For the double sum, restate the `Ket.MES` REFERENCE
-    example as a lemma `MES_apply` and unfold with `dotProduct, mulVec, Fintype.sum_prod_type, Matrix.kroneckerMap_apply`.
-    The corollary: `unfold sdc; rw [sdc_overlap]`, then 16 cases of 2×2 traces.
-H3. Prove the MILESTONE `mes_expect` first (then `B = 1` turns its double sum into the trace).
-    Collapse with `simp only [..., MES_apply, apply_ite star, mul_ite, ite_mul, mul_zero, zero_mul, Finset.sum_ite_eq,
-    Finset.mem_univ, if_true]` and `(√n)⁻¹ * (√n)⁻¹ = (n : ℂ)⁻¹` (`← mul_inv, ← Complex.ofReal_mul, Real.mul_self_sqrt`).
+    The MILESTONE `mes_expect` computes `⟨Φ, (A ⊗ B) Φ⟩` for any `A, B`; prove it first.
+H2. MILESTONE: unfold everything into sums (R7–R11), read Φ's amplitudes as `if`s through your own lemma
+    `MES_apply` (R1), collapse the `if`s (R12–R15), clear the conjugate of `(√n)⁻¹` (R16–R18), then compare
+    summands (R19, R20) using `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` (R2–R6). `sdc_overlap` is a `rw` chain (R21–R27), then
+    `rw [mes_expect]` and one `simp` (R28, R29). The corollary: `unfold sdc; rw [sdc_overlap]`, then 16 cases
+    of 2×2 traces (R31–R38).
+H3. `sdc_overlap`: `rw [Matrix.star_mulVec, ← Matrix.dotProduct_mulVec, Matrix.mulVec_mulVec,
+    Matrix.conjTranspose_kronecker, Matrix.conjTranspose_one, ← Matrix.mul_kronecker_mul, one_mul, mes_expect]`.
+    MILESTONE: `simp only [dotProduct, mulVec, Fintype.sum_prod_type, Matrix.kroneckerMap_apply, Pi.star_apply,
+    MES_apply, apply_ite star, star_zero, mul_ite, mul_zero, ite_mul, zero_mul, Finset.sum_ite_eq,
+    Finset.mem_univ, if_true]`, then `simp only [Complex.star_def, map_inv₀, Complex.conj_ofReal, Finset.mul_sum]`
+    and `refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_`.
     Corollary: `obtain ⟨b1, b2⟩ := b; obtain ⟨c1, c2⟩ := c`,
     `fin_cases b1 <;> fin_cases b2 <;> fin_cases c1 <;> fin_cases c2 <;> simp [enc, X, Z, Matrix.trace_fin_two, ...]`.
 -/

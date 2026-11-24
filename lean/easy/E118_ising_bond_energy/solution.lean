@@ -4,12 +4,11 @@ GOAL
   `-J s_a s_b`: show it is `-J` when aligned and `+J` when anti-aligned, and that flipping both spins
   (`!a` is Boolean negation) leaves it unchanged.
 
-REFERENCE
-  example (P : Bool → Prop) (b : Bool) (h0 : P false) (h1 : P true) : P b := by cases b <;> assumption
-  example : (!true) = false := rfl        -- `!b` is `not b`
-  example : (if true then (1 : ℝ) else -1) = 1 := by simp
-  `simp [bond, spin]` unfolds your definitions; after `cases a` the `if` has a literal condition and
-  simp reduces it. `t1 <;> t2` runs `t2` on every goal `t1` produces.
+GUIDE
+  Entries R1–R10: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -23,11 +22,22 @@ def spin (b : Bool) : ℝ := if b then 1 else -1
 def bond (J : ℝ) (a b : Bool) : ℝ := -J * (spin a * spin b)
 -- END SPEC
 
+/- SKELETON · bond_values
+  1. `a` is a variable, so `spin a` cannot be evaluated: split it into
+     `a = false` and `a = true`.                                                R1
+  2. In both goals (join with `<;>`), one `simp` naming both definitions.
+     It unfolds them, evaluates `!a` and the `if`s, multiplies the `±1`s,
+     and closes both sides of the `∧`:                                         R3 → R4, R5 → R6 → R7, R8, R9 → R10
+-/
 -- BEGIN SPEC
 theorem bond_values (J : ℝ) (a : Bool) : bond J a a = -J ∧ bond J a (!a) = J :=
 -- END SPEC
   by cases a <;> simp [bond, spin]
 
+/- SKELETON · bond_flip
+  1. Two spin variables: split both, four goals.                                 R2
+  2. In all four goals, the same `simp` as in `bond_values`:                     R3 → R4, R5 → R6 → R7, R8, R9
+-/
 -- BEGIN SPEC
 theorem bond_flip (J : ℝ) (a b : Bool) : bond J (!a) (!b) = bond J a b :=
 -- END SPEC
@@ -36,7 +46,9 @@ theorem bond_flip (J : ℝ) (a b : Bool) : bond J (!a) (!b) = bond J a b :=
 end E118
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. A `Bool` has only two values: split into cases and compute.
-H2. `bond_values` needs one case split (on `a`), `bond_flip` two (on `a` and on `b`).
-H3. `cases a <;> simp [bond, spin]`; `cases a <;> cases b <;> simp [bond, spin]`.
+H1. `spin a` with a variable `a` is stuck at an `if`. A `Bool` has only two values: split into cases,
+    then every `if` has a literal condition and the goal is arithmetic with `±1`.
+H2. `bond_values`: one case split on `a` (R1), `bond_flip`: two, on `a` and `b` (R2). Then one `simp`
+    that unfolds `bond` and `spin` (R3) does the rest in every goal: R4–R9, plus R10 for the `∧`.
+H3. `cases a <;> simp [bond, spin]` for `bond_values`; `bond_flip` is the same with `b` split too.
 -/

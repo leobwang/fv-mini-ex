@@ -5,19 +5,13 @@ GOAL
   mean magnetisation `mag T h = p₀ - p₁` is `tanh (β h)`, and Curie's law: the zero-field
   susceptibility, the derivative of `h ↦ mag T h` at `h = 0`, is `β = 1 / (kB T)`.
 
-REFERENCE
-  #check CanonicalEnsemble.probability  -- 𝓒.probability T i = exp (-↑T.β * 𝓒.energy i) / 𝓒.mathematicalPartitionFunction T
-  #check CanonicalEnsemble.mathematicalPartitionFunction_of_fintype  -- for twoState: Z = ∑ i, exp (-↑T.β * energy i)
-  #check Fin.sum_univ_two   -- ∑ i : Fin 2, f i = f 0 + f 1
-  #check Real.tanh_eq       -- tanh x = (exp x - exp (-x)) / (exp x + exp (-x))
-  #check Real.tanh_eq_sinh_div_cosh  -- tanh x = sinh x / cosh x
-  #check Real.hasDerivAt_sinh  -- HasDerivAt sinh (cosh x) x    (also `Real.hasDerivAt_cosh`: derivative sinh)
-  #check HasDerivAt.comp    -- (hf : HasDerivAt f f' (g x)).comp x (hg : HasDerivAt g g' x) : HasDerivAt (f ∘ g) (f' * g') x
-  #check HasDerivAt.div     -- hc.div hd (d x ≠ 0) : HasDerivAt (c / d) ((c' * d x - c x * d') / d x ^ 2) x
-  #check HasDerivAt.congr_deriv  -- HasDerivAt f f' x → f' = g' → HasDerivAt f g' x
-  example (c x : ℝ) : HasDerivAt (fun y => c * y) c x := by simpa using (hasDerivAt_id x).const_mul c
 BANNED: twoState_probability_fst, twoState_probability_snd, deriv_tanh, contDiff_tanh, contDiff_top_tanh, iteratedDeriv_tanh_differentiable
-NOTE: `T.β : ℝ≥0` and `(T.β : ℝ)` is its cast; `Temperature.β_toReal : (T.β : ℝ) = 1 / (kB * T.toReal)`. Mathlib has no `hasDerivAt_tanh`: go through `sinh / cosh`.
+
+GUIDE
+  Entries R1–R19: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.StatisticalMechanics.CanonicalEnsemble.TwoState
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
@@ -33,11 +27,32 @@ noncomputable def mag (T : Temperature) (h : ℝ) : ℝ :=
   (twoState (-h) h).probability T 0 - (twoState (-h) h).probability T 1
 -- END SPEC
 
+/- SKELETON · mag_eq
+  1. Unfold `mag` (a plain definition: `simp [mag, …]`), then both probabilities:   R1
+  2. The partition function as a sum, then as two terms:                            R2 → R3
+  3. The two energies `-h`, `h` of `twoState (-h) h`:                               R4
+  4. Normalise the signs in `-↑T.β * -h` and `-↑T.β * h`:                           R5
+  5. `tanh` in exponentials, split over the common divisor; both sides now agree:   R6 → R7
+  All five steps fit in ONE `simp [mag, …]` call that names the lemmas of R1–R7
+  (R4 and R5 are simp lemmas already).
+-/
 -- BEGIN SPEC
 theorem mag_eq (T : Temperature) (h : ℝ) : mag T h = Real.tanh ((T.β : ℝ) * h) :=
 -- END SPEC
   sorry
 
+/- SKELETON · curie
+  1. Facts first:
+       hm : mag T = fun h => Real.sinh ((T.β : ℝ) * h) / Real.cosh ((T.β : ℝ) * h)
+              proof: funext h, then rw [mag_eq], then R8
+       hl : HasDerivAt (fun h : ℝ => (T.β : ℝ) * h) (T.β : ℝ) 0
+              proof: R11 applied to R9 → R10
+       hs : chain rule for `sinh` at `(T.β : ℝ) * 0` with `hl`:           R12 → R14
+       hc : chain rule for `cosh` at `(T.β : ℝ) * 0` with `hl`:           R13 → R14
+  2. Replace the function in the goal:                                    rw [hm]
+  3. Quotient rule from `hs`, `hc` (denominator ≠ 0 by R16), then fix the
+     value, which mentions `sinh (↑T.β * 0)` and `cosh (↑T.β * 0)`:       R15 with R16 → R17, simp (R18, R19)
+-/
 -- BEGIN SPEC
 theorem curie (T : Temperature) : HasDerivAt (mag T) (T.β : ℝ) 0 :=
 -- END SPEC
@@ -46,12 +61,16 @@ theorem curie (T : Temperature) : HasDerivAt (mag T) (T.β : ℝ) 0 :=
 end M155
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `mag_eq` is pure unfolding: definitions of `mag` and `probability`, `Z` as a two-term sum, and
-    the exponential form of `tanh`. Then `curie` never needs `probability` again.
-H2. `curie`: rewrite `mag T` as `fun h => sinh (β h) / cosh (β h)` (by `funext` and `mag_eq`).
-    Chain rule for `sinh (β h)` and `cosh (β h)` at `h = 0`, then the quotient rule; the value it
-    produces mentions `sinh 0` and `cosh 0`, so fix it up with `congr_deriv`.
+H1. `mag_eq` is pure unfolding (R1–R7): `p₀ - p₁` with `Z` as a two-term sum is literally `tanh` in
+    exponential form once the signs are normalised. `curie` never needs `probability` again: it
+    starts from `mag_eq`, because Mathlib differentiates `sinh` and `cosh` but not `tanh`.
+H2. `curie`: prove `hm : mag T = fun h => sinh (β h) / cosh (β h)` (`funext`, `mag_eq`, R8) and the
+    inner derivative `hl` of `h ↦ β h`; chain rule (R14) for `sinh` and `cosh` at `β * 0`; `rw [hm]`;
+    quotient rule (R15); its value mentions `sinh (β * 0)` and `cosh (β * 0)`, so finish with
+    `congr_deriv` (R17) and `simp`.
 H3. `simp [mag, probability, mathematicalPartitionFunction_of_fintype, Fin.sum_univ_two, Real.tanh_eq, sub_div]`;
-    `have hs := (Real.hasDerivAt_sinh (β * 0)).comp 0 hl` with `hl : HasDerivAt (fun h => β * h) β 0`;
+    `have hs := (Real.hasDerivAt_sinh ((T.β : ℝ) * 0)).comp 0 hl` with
+    `hl : HasDerivAt (fun h : ℝ => (T.β : ℝ) * h) (T.β : ℝ) 0` from
+    `simpa using (hasDerivAt_id (0 : ℝ)).const_mul (T.β : ℝ)`;
     after `rw [hm]`, close with `(hs.div hc (Real.cosh_pos _).ne').congr_deriv (by simp)`.
 -/

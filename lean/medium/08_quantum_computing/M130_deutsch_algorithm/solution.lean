@@ -3,17 +3,11 @@ GOAL
   One oracle query decides whether `f : Fin 2 → Fin 2` is constant: after the circuit
   `(H ⊗ 1) · U_f · (H ⊗ H)` on `|0⟩|1⟩`, the probability that the first qubit reads 1 is 0 if `f 0 = f 1`, else 1.
 
-REFERENCE
-  -- Two-qubit states are `Fin 2 × Fin 2 → ℂ`; `M *ᵥ v` is matrix·vector; `A ⊗ₖ B` is the Kronecker product.
-  example : (1 : Fin 2) + 1 = 0 := rfl          -- `Fin 2` addition is XOR, so `y + f x` is `y ⊕ f x`
-  example (P : Fin 2 → Prop) (h0 : P 0) (h1 : P 1) : ∀ x, P x := by intro x; fin_cases x <;> assumption
-  #check Complex.normSq_apply      -- normSq z = z.re * z.re + z.im * z.im   (|z|², the Born probability)
-  #check Matrix.kroneckerMap_apply -- (A ⊗ₖ B) i j = A i.1 j.1 * B i.2 j.2
-  #check Fintype.sum_prod_type     -- ∑ x : α × β, f x = ∑ a, ∑ b, f (a, b)
-  #check Pi.single_apply           -- Pi.single i x i' = if i' = i then x else 0
-  #check Matrix.one_apply          -- (1 : Matrix n n α) i j = if i = j then 1 else 0
-  example : Real.sqrt 2 ^ 6 = 8 := by
-    rw [show Real.sqrt 2 ^ 6 = (Real.sqrt 2 ^ 2) ^ 3 by ring, Real.sq_sqrt (by norm_num)]; norm_num
+GUIDE
+  Entries R1–R19: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -39,6 +33,24 @@ noncomputable def deutsch (f : Fin 2 → Fin 2) : Fin 2 × Fin 2 → ℂ :=
   (H ⊗ₖ 1) *ᵥ (Uf f *ᵥ ((H ⊗ₖ H) *ᵥ tensor (ket 0) (ket 1)))
 -- END SPEC
 
+/- SKELETON · deutsch_correct
+  1. Prove two facts BEFORE any split, so every case gets them:
+       two : ∀ x : Fin 2, x = 0 ∨ x = 1                  proof: R1
+       s6  : Real.sqrt 2 ^ 6 = 8   (in ℝ)               proof: R2 → R3 → R4
+  2. Split on the value of `f 0`, then of `f 1`, joined by `<;>`
+     (four cases: two constant, two balanced):                      R5, R5
+  3. In every case, ONE `simp` call with
+       the case hypotheses h0, h1                                    R6
+       the five definitions deutsch, Uf, H, ket, tensor
+       the lemmas simp never applies by itself                      R8, R9, R16
+       optional: simp finds these here by itself, naming them is safe R10, R11, R12, R13
+     (simp itself applies R7, R14, R15, R17, R18).
+     The two constant cases close here.
+  4. The balanced cases are left with a real polynomial in `√2 / 2`:
+       collect it into `√2 ^ 6 * (1 / 8) = 1`                        R19
+       substitute the fact                                           rw [s6]
+       finish the numbers                                            R4
+-/
 -- BEGIN SPEC
 theorem deutsch_correct (f : Fin 2 → Fin 2) :
     ∑ y, Complex.normSq (deutsch f (1, y)) = if f 0 = f 1 then 0 else 1 :=
@@ -57,11 +69,14 @@ theorem deutsch_correct (f : Fin 2 → Fin 2) :
 end M130
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. There are only four functions `Fin 2 → Fin 2`: split on the values `f 0` and `f 1` first, so the
-    `if` and the oracle become concrete. Then everything is a finite sum you can expand.
-H2. Split on `f 0` and `f 1` (each is `0` or `1`; `decide` proves `∀ x : Fin 2, x = 0 ∨ x = 1`). In each case
-    unfold everything and expand the finite sums; the less obvious names are `Fintype.sum_prod_type` and
-    `Matrix.kroneckerMap_apply`. Finish the arithmetic with `ring_nf`.
-H3. After `ring_nf`, the two non-constant cases are left with `√2 ^ 6 * (1 / 8) = 1`: prove
-    `have s6 : Real.sqrt 2 ^ 6 = 8` up front (the REFERENCE line) and end the pipeline with `<;> rw [s6] <;> norm_num`.
+H1. There are only four functions `Fin 2 → Fin 2`. Split on the values of `f 0` and `f 1` first (R5), so
+    the `if f 0 = f 1` and the oracle's `q.2 + f q.1` become concrete; then every amplitude is a finite
+    sum of explicit numbers that `simp` can expand.
+H2. Facts first: `two : ∀ x : Fin 2, x = 0 ∨ x = 1` (R1) and `s6 : Real.sqrt 2 ^ 6 = 8` (R2 → R3 → R4).
+    Then `rcases two (f 0) with h0 | h0 <;> rcases two (f 1) with h1 | h1 <;> simp [...]` with `h0, h1`,
+    the five definitions and `mulVec, dotProduct, Fintype.sum_prod_type, Fin.sum_univ_two,
+    Matrix.kroneckerMap_apply, Matrix.one_apply, Pi.single_apply, Complex.normSq_apply` (R6–R18).
+H3. `have s6 : Real.sqrt 2 ^ 6 = 8 := by rw [show Real.sqrt 2 ^ 6 = (Real.sqrt 2 ^ 2) ^ 3 by ring,
+    Real.sq_sqrt (by norm_num)]; norm_num`. After `simp` the balanced cases become `√2 ^ 6 * (1 / 8) = 1`
+    under `ring_nf` (R19), so end the pipeline with `<;> ring_nf <;> rw [s6] <;> norm_num`.
 -/

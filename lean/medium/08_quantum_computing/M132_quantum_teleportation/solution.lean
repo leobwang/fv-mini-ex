@@ -4,17 +4,11 @@ GOAL
   after CNOT, H and outcomes `(m₀, m₁)`, applying `X^m₁` then `Z^m₀` leaves `½ χ` (now on q₂ and `R`);
   each outcome has probability ¼.
 
-REFERENCE
-  -- a state of q₀ q₁ q₂ and R is `v : Fin 2 × Fin 2 × Fin 2 × R → ℂ`; for `p = (a, b, c, r)`:
-  -- `p.1 = a` (q₀), `p.2.1 = b` (q₁), `p.2.2.1 = c` (q₂, Bob), `p.2.2.2 = r`;  `p.2.2 = (c, r)`
-  example : (1 : Fin 2) + 1 = 0 := rfl                -- `+` on `Fin 2` is XOR (bit flip)
-  example (f : Fin 2 × ℕ → ℂ) : f = fun q => f q := by funext ⟨c, r⟩; rfl   -- funext + pattern
-  example (m : Fin 2) (P : Fin 2 → Prop) (h0 : P 0) (h1 : P 1) : P m := by fin_cases m <;> assumption
-  example : (Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ = 1 / 2 := by
-    rw [← mul_inv, ← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]; norm_num
-  #check Fintype.sum_prod_type  -- ∑ x : α × β, f x = ∑ a, ∑ b, f (a, b)
-  #check Complex.normSq_mul     -- normSq (z * w) = normSq z * normSq w   (normSq z = |z|²)
-  #check Fin.sum_univ_two       -- ∑ i : Fin 2, f i = f 0 + f 1
+GUIDE
+  Entries R1–R27: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -60,6 +54,17 @@ theorem key (χ : Fin 2 × R → ℂ) (m₀ m₁ c : Fin 2) (r : R) :
   fin_cases m₀ <;> fin_cases m₁ <;> fin_cases c <;> simp [bob, h0, cnot01, init] <;> ring_nf <;>
     simp [sq, h] <;> ring
 
+/- SKELETON · teleport
+  0. Milestone first, as its own lemma above this theorem (`key` below uses it too):
+       s_mul_s : s * s = 1 / 2                    proof: R1 → R2 → R3 → R4 → R5
+  1. Function equation → its value at Bob's point `(c, r)`:                 R6
+  2. Bring the milestone in (`have h := s_mul_s`):                          R7
+  3. Split the three bits `m₀`, `m₁`, `c` (8 goals):                        R8
+  4. In every goal, evaluate: `simp` with all six gate names                R9–R12
+  5. Collect the two factors `s` into `s ^ 2`:                              R13
+  6. `s ^ 2` back to `s * s`, then substitute the milestone (`simp [sq, h]`): R14
+  7. Finish the reordering:                                                 R15
+-/
 -- BEGIN SPEC
 theorem teleport (χ : Fin 2 × R → ℂ) (m₀ m₁ : Fin 2) :
     fixZ m₀ (fixX m₁ (bob (h0 (cnot01 (init χ))) m₀ m₁)) = fun q => (1 / 2 : ℂ) * χ q :=
@@ -70,6 +75,21 @@ theorem teleport (χ : Fin 2 × R → ℂ) (m₀ m₁ : Fin 2) :
     fin_cases m₀ <;> fin_cases m₁ <;> fin_cases c <;>
       simp [fixZ, fixX, bob, h0, cnot01, init] <;> ring_nf <;> simp [sq, h] <;> ring
 
+/- SKELETON · teleport_prob
+  0. Milestone first, as its own lemma (exact statement in H3): the closed form
+       key : bob (h0 (cnot01 (init χ))) m₀ m₁ (c, r) = ±(1 / 2) * χ (c + m₁, r),
+             sign -1 exactly when `m₀ = 1 ∧ c + m₁ = 1`.
+     proof: like `teleport` without its step 1:          R7, R8 (on m₀ m₁ c), R9–R12, R13, R14, R15
+  1. One `simp only`: sum over pairs → double sum, every amplitude → `key`,
+     `normSq` of the products split:                                        R16, R17, R18
+  2. Two facts for step 3:
+       hs : ∀ P : Prop, [Decidable P] → Complex.normSq (if P then -1 else 1) = 1
+                                                  proof: R19 → R20 → R21
+       h4 : Complex.normSq (1 / 2) = 1 / 4        proof: R22
+  3. One `simp only` with `hs`, R23, `h4`, R24, R25, `← R26`: each side is one sum over `r : R`
+  4. Compare the two sums term by term:                                     R27
+  5. Split `m₁`, compute `0 + m₁`, `1 + m₁`, finish:                        R8, R11, R15
+-/
 -- BEGIN SPEC
 theorem teleport_prob [Fintype R] (χ : Fin 2 × R → ℂ) (m₀ m₁ : Fin 2) :
     ∑ q, Complex.normSq (bob (h0 (cnot01 (init χ))) m₀ m₁ q)
@@ -88,13 +108,16 @@ theorem teleport_prob [Fintype R] (χ : Fin 2 × R → ℂ) (m₀ m₁ : Fin 2) 
 end M132
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Everything is a finite computation: prove `s * s = 1 / 2` first, then split every `Fin 2`
-    variable (`m₀`, `m₁`, Bob's bit `c`) and let `simp` unfold the definitions.
-H2. `teleport`: `funext ⟨c, r⟩`, then `fin_cases` on `m₀`, `m₁`, `c`, then `simp [defs]`, `ring_nf`,
-    and finish with your `s * s` lemma. `teleport_prob`: first prove a closed form for each amplitude
-    of `bob …`, then the sum is bookkeeping.
-H3. `have key : ∀ c r, bob (h0 (cnot01 (init χ))) m₀ m₁ (c, r)
+H1. Everything is a finite computation. The only irrational number is `s = (√2)⁻¹`, and it always
+    appears twice: prove `s * s = 1 / 2` first (R1–R5). Then split every `Fin 2` variable (`m₀`, `m₁`,
+    Bob's bit `c`) and let `simp` evaluate the gates.
+H2. `teleport`: reduce to Bob's point with `funext ⟨c, r⟩`, split `m₀ m₁ c`, evaluate with `simp` and
+    all six gate names, then collect `s * (… * s)` into `s ^ 2` (`ring_nf`) and substitute the milestone.
+    `teleport_prob`: first prove a closed form `key` for each amplitude of `bob …` the same way; then
+    the sum is bookkeeping (R16–R27).
+H3. `theorem key (χ : Fin 2 × R → ℂ) (m₀ m₁ c : Fin 2) (r : R) : bob (h0 (cnot01 (init χ))) m₀ m₁ (c, r)
       = (if m₀ = 1 ∧ c + m₁ = 1 then -1 else 1) * ((1 / 2 : ℂ) * χ (c + m₁, r))`; then
     `simp only [Fintype.sum_prod_type, key, Complex.normSq_mul]`, the sign has `normSq = 1`
-    (`split_ifs <;> simp`), and finish per `r` with `fin_cases m₁ <;> simp <;> ring`.
+    (`intro P _; split_ifs <;> simp`), merge the sums (R23–R26), go term by term (R27), and finish
+    per `r` with `fin_cases m₁ <;> simp <;> ring`.
 -/

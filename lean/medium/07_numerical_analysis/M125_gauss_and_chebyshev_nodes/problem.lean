@@ -1,27 +1,31 @@
 /- M125 | Gauss and Chebyshev nodes | 15-20 min | intervalIntegral, method of moments, linear_combination, Chebyshev polynomials, trig, mathlib
 GOAL
-  (1) Any two-point rule `w₁ f(x₁) + w₂ f(x₂)` that integrates `1, x, x², x³` exactly on `[-1, 1]` is forced to be
-  Gauss–Legendre: `x₁ + x₂ = 0`, `x₁ x₂ = -1/3` (nodes `±1/√3`, the roots of `3x² - 1`) and `w₁ = w₂ = 1`;
-  (2) that rule is not exact for `x⁴`, so 3 is its exact degree; (3) the Chebyshev nodes
-  `cos((2k+1)π/(2n))`, `k < n`, are roots of the Chebyshev polynomial `Tₙ` (`Tₙ(cos θ) = cos(nθ)`).
+  (1) A two-point rule `w₁ f(x₁) + w₂ f(x₂)` exact for `1, x, x², x³` on `[-1, 1]` is Gauss–Legendre:
+  `x₁ + x₂ = 0`, `x₁ x₂ = -1/3` (nodes `±1/√3`), `w₁ = w₂ = 1`; (2) it is not exact for `x⁴`; (3) the
+  Chebyshev nodes `cos((2k+1)π/(2n))`, `k < n`, are roots of `Tₙ` (`Tₙ(cos θ) = cos(nθ)`).
 
-REFERENCE
-  example : ∫ x in (-1:ℝ)..1, x ^ 2 = 2 / 3 := by norm_num [integral_pow]   -- `∫ x in a..b, f x` over [a, b]
-  #check integral_pow   -- ∫ x in a..b, x ^ n = (b ^ (n + 1) - a ^ (n + 1)) / (n + 1)
-  example (w x : ℝ) (h : ∀ k ≤ 3, w * x ^ k = 0) : w * x ^ 2 = 0 := h 2 (by norm_num)  -- specialize a `∀ k ≤ 3`
-  example (a b : ℝ) (h₁ : a + b = 2) (h₂ : a - b = 0) : a = 1 := by linear_combination (h₁ + h₂) / 2
-  --   ^ `linear_combination e` closes `lhs = rhs` when `lhs - rhs - (e.lhs - e.rhs)` is 0 by `ring`; `e` may mix `hᵢ` with polynomial coefficients
-  #check mul_eq_zero    -- a * b = 0 ↔ a = 0 ∨ b = 0      (and `sub_eq_zero : a - b = 0 ↔ a = b`)
-  #check Real.sq_sqrt   -- 0 ≤ x → √x ^ 2 = x
-  #check Polynomial.Chebyshev.T_real_cos   -- (T ℝ n).eval (cos θ) = cos (n * θ)    (n : ℤ)
-  #check Real.cos_eq_zero_iff              -- cos θ = 0 ↔ ∃ k : ℤ, θ = (2 * k + 1) * π / 2
-  `p.eval x` evaluates the polynomial `p` at `x`.
-NOTE: `Polynomial.Chebyshev.T` is indexed by `ℤ`, so `T ℝ n` with `n : ℕ` carries a cast; `push_cast` tidies casts.
+GUIDE
+  Entries R1–R19: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace M125
 
+/- SKELETON · gauss_nodes_forced
+  Write s = x₁ + x₂, p = x₁ * x₂.
+  1. The four moment equations h0–h3 (k = 0, 1, 2, 3):                      R1 (four times)
+  2. Evaluate their integrals; the right sides become 2, 0, 2 / 3, 0:      R3 (it uses R2)
+  3. hs : x₁ + x₂ = 0        is a multiple of  h3 - s·h2 + p·h1:            R4
+     hp : x₁ * x₂ = -1 / 3   is a multiple of  h2 - s·h1 + p·h0:            R4
+  4. hx : x₁ ≠ 0: assume x₁ = 0, then hp reads 0 = -1 / 3:                  R5, R6
+  5. hw : w₁ = w₂: first (w₁ - w₂) * x₁ = 0 from h1 and hs,                 R4
+     then cancel x₁ using hx:                                               R7 → R8 → R9
+  6. Split the goal, filling the first two parts with hs, hp:               refine ⟨hs, hp, ?_, ?_⟩
+     the weights follow from h0 and hw:                                     R10
+-/
 -- BEGIN SPEC
 theorem gauss_nodes_forced (w₁ w₂ x₁ x₂ : ℝ)
     (hexact : ∀ k ≤ 3, w₁ * x₁ ^ k + w₂ * x₂ ^ k = ∫ x in (-1:ℝ)..1, x ^ k) :
@@ -29,12 +33,26 @@ theorem gauss_nodes_forced (w₁ w₂ x₁ x₂ : ℝ)
 -- END SPEC
   sorry
 
+/- SKELETON · gauss_not_exact_quartic
+  1. hs : √3 ^ 2 = 3:                                                       R11
+  2. Evaluate the integral:                                                 R2
+  3. Rewrite each node power into the form 1 / (√3 ^ 2) ^ 2 (one `show`
+     per power, as in R12), then substitute hs:                             R12 (twice), rw [hs]
+  4. Both sides are numerals now (2 / 5 vs 2 / 9):                          norm_num
+-/
 -- BEGIN SPEC
 theorem gauss_not_exact_quartic :
     ∫ x in (-1:ℝ)..1, x ^ 4 ≠ (-1 / √3) ^ 4 + (1 / √3) ^ 4 :=
 -- END SPEC
   sorry
 
+/- SKELETON · chebyshev_node_root
+  1. T at cos θ → cos (n * θ):                                              R13
+  2. cos (…) = 0 → ∃ j : ℤ, … = (2 * j + 1) * π / 2:                         R14
+  3. hn : (n : ℝ) ≠ 0: first 0 < n from hk, then the real cast:             R17, R18
+  4. Give the witness k:                                                    R15
+  5. Merge the casts ↑↑n, ↑↑k into ↑n, ↑k, then cancel n using hn:          R16, R19
+-/
 -- BEGIN SPEC
 theorem chebyshev_node_root (n k : ℕ) (hk : k < n) :
     (Polynomial.Chebyshev.T ℝ n).eval (Real.cos ((2 * k + 1) * Real.pi / (2 * n))) = 0 :=
@@ -44,7 +62,19 @@ theorem chebyshev_node_root (n k : ℕ) (hk : k < n) :
 end M125
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. (1) Get the four moment equations `h0`–`h3` (`hexact k (by norm_num)`, then `norm_num [integral_pow] at …`); the right sides are `2, 0, 2/3, 0`. With `s = x₁ + x₂`, `P = x₁ x₂`, the polynomial `x² - s x + P` vanishes at both nodes. (3) Turn `T` at `cos θ` into `cos (n θ)` and use where cosine vanishes.
-H2. (1) Weight that vanishing: `Σ wᵢ (xᵢ² - s xᵢ + P) = 0` reads `h2 - s·h1 + P·h0`, i.e. `2/3 + 2P = 0`; `Σ wᵢ xᵢ (xᵢ² - s xᵢ + P) = 0` reads `h3 - s·h2 + P·h1`, i.e. `-(2/3) s = 0`. Then `x₁ ≠ 0` (else `P = 0`) and `h1` give `w₁ = w₂`. (2) Both node powers equal `1 / (√3 ^ 2) ^ 2`. (3) The witness integer is `k`; you need `(n : ℝ) ≠ 0`.
-H3. (1) `linear_combination (-1 / 2 : ℝ) * (h2 - (x₁ + x₂) * h1 + (x₁ * x₂) * h0)` proves `x₁ * x₂ = -1 / 3`; `(3 / 2 : ℝ) * (h3 - …)` likewise proves `x₁ + x₂ = 0`; for the weights, `(w₁ - w₂) * x₁ = 0` is `linear_combination h1 - w₂ * hs`. (2) `rw [integral_pow, show (1 / √3) ^ 4 = 1 / (√3 ^ 2) ^ 2 by ring, …, Real.sq_sqrt …]; norm_num`. (3) `rw [Polynomial.Chebyshev.T_real_cos, Real.cos_eq_zero_iff]; refine ⟨k, ?_⟩; push_cast; field_simp`.
+H1. (1) Specialize `hexact` at `k = 0, 1, 2, 3` and evaluate the integrals: the moments are `2, 0, 2/3, 0`.
+    With `s = x₁ + x₂`, `p = x₁ x₂`, the polynomial `q(x) = x² - s x + p` vanishes at both nodes.
+    (2) `norm_num` cannot simplify `(1 / √3) ^ 4` by itself; make `√3 ^ 2` appear first.
+    (3) `Tₙ(cos θ) = cos (n θ)`, and `cos` vanishes exactly at the odd multiples of `π / 2`.
+H2. (1) `Σ wᵢ q(xᵢ) = 0` is `h2 - s·h1 + p·h0`, i.e. `2/3 + 2p = 0`; `Σ wᵢ xᵢ q(xᵢ) = 0` is
+    `h3 - s·h2 + p·h1`, i.e. `-(2/3) s = 0`: one `linear_combination` each (R4). Then `x₁ ≠ 0` (R5, R6), and
+    `(w₁ - w₂) x₁ = 0` gives `w₁ = w₂` (R7 → R8 → R9); `linarith` (R10) finishes the weights.
+    (2) R2, then rewrite both powers as `1 / (√3 ^ 2) ^ 2` (R12) and use `√3 ^ 2 = 3` (R11).
+    (3) R13, R14, witness `k` (R15); with `(n : ℝ) ≠ 0` in the context (R17, R18), `push_cast` then `field_simp`.
+H3. (1) `linear_combination (-1 / 2 : ℝ) * (h2 - (x₁ + x₂) * h1 + (x₁ * x₂) * h0)` proves `x₁ * x₂ = -1 / 3`;
+    `(3 / 2 : ℝ) * (h3 - …)` likewise proves `x₁ + x₂ = 0`; for the weights, `(w₁ - w₂) * x₁ = 0` is
+    `linear_combination h1 - w₂ * hs`, and `sub_eq_zero.mp ((mul_eq_zero.mp this).resolve_right hx)`.
+    (2) `rw [integral_pow, show (1 / √3) ^ 4 = 1 / (√3 ^ 2) ^ 2 by ring, …, hs]; norm_num`.
+    (3) `rw [Polynomial.Chebyshev.T_real_cos, Real.cos_eq_zero_iff]`, then `have hn : (n : ℝ) ≠ 0` (R17, R18),
+    then `refine ⟨k, ?_⟩; push_cast; field_simp`.
 -/

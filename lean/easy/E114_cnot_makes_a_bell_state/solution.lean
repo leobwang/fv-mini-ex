@@ -3,18 +3,11 @@ GOAL
   A two-qubit state is a vector indexed by pairs `(a, b) : Fin 2 × Fin 2` (the basis state |ab⟩). Show
   that "Hadamard on qubit 1, then CNOT" maps |00⟩ to the Bell state (|00⟩ + |11⟩)/√2, and CNOT² = 1.
 
-REFERENCE
-  #check Matrix.mulVec             -- `M *ᵥ v`: (M *ᵥ v) i = ∑ j, M i j * v j   (unfold: `Matrix.mulVec, dotProduct`)
-  #check Fintype.sum_prod_type     -- ∑ x, f x = ∑ x, ∑ y, f (x, y)   (a sum over pairs is a double sum)
-  `H ⊗ₖ 1` (typed `\otimes\_k`, from `open scoped Kronecker`) is the Kronecker product: H on qubit 1
-  (the control), identity on qubit 2. `Matrix.of f` is the matrix whose (p, q) entry is `f p q`.
-  #check Matrix.kroneckerMap_apply -- (A ⊗ₖ B) (i, k) (j, l) = A i j * B k l   (simp applies it by itself)
-  #check Pi.single_apply           -- Pi.single i x i' = if i' = i then x else 0
-  example : (1 : Fin 2) + 1 = 0 := rfl   -- `Fin 2` addition is XOR: CNOT flips the target iff control = 1
-  `ext ⟨a, b⟩` splits a vector equation on pairs into entries and names both components; then
-  `fin_cases a <;> fin_cases b` makes the four cases |00⟩ … |11⟩. For a matrix: `ext ⟨a, b⟩ ⟨c, d⟩`.
-  Close each case with `simp [<your defs>, Matrix.mulVec, dotProduct, Fintype.sum_prod_type]`
-  (for a matrix product use `Matrix.mul_apply` instead of `mulVec`/`dotProduct`).
+GUIDE
+  Entries R1–R19: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -38,6 +31,16 @@ noncomputable def bell : Fin 2 × Fin 2 → ℂ :=
   fun p => if p.1 = p.2 then ((Real.sqrt 2)⁻¹ : ℂ) else 0
 -- END SPEC
 
+/- SKELETON · cnot_bell
+  1. Vector equation → one goal for the entry at the pair (a, b):          R1
+  2. One goal per basis state |00⟩, |01⟩, |10⟩, |11⟩:                        R2 on a, then on b (`<;>`)
+  3. In every goal, ONE `simp` call that names:
+       your definitions CNOT, H, ket, tensor, bell                          R3
+       matrix × vector, unfolded (else `simp` only merges the gates, R6)    R4, R5
+       the sum over pairs, split into a double sum                         R7 → R8
+     `simp` then reads the entries by itself:                               R9, R10, R11, R12, R13, R14
+     and decides the `Fin 2` conditions:                                    R15, R16
+-/
 -- BEGIN SPEC
 theorem cnot_bell : CNOT *ᵥ ((H ⊗ₖ 1) *ᵥ tensor (ket 0) (ket 0)) = bell :=
 -- END SPEC
@@ -46,6 +49,16 @@ theorem cnot_bell : CNOT *ᵥ ((H ⊗ₖ 1) *ᵥ tensor (ket 0) (ket 0)) = bell 
     fin_cases a <;> fin_cases b <;>
       simp [CNOT, H, ket, tensor, bell, Matrix.mulVec, dotProduct, Fintype.sum_prod_type]
 
+/- SKELETON · cnot_sq
+  1. Matrix equation → one goal for the entry at ((a, b), (c, d)):         R17
+  2. Sixteen goals:                                                         R2 on a, b, c, d (`<;>`)
+  3. In every goal, ONE `simp` call that names:
+       CNOT                                                                 R3
+       the entry of a matrix product                                        R18
+       the sum over the middle pair                                         R7 → R8
+     `simp` then reads `of`, the identity and pair equalities by itself,    R9, R11 → R19
+     and decides the `Fin 2` conditions:                                    R15, R16
+-/
 -- BEGIN SPEC
 theorem cnot_sq : CNOT * CNOT = 1 :=
 -- END SPEC
@@ -57,9 +70,11 @@ theorem cnot_sq : CNOT * CNOT = 1 :=
 end E114
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Both sides are finite objects indexed by pairs; compare them one basis entry at a time.
-H2. `ext ⟨a, b⟩` (two `⟨…⟩` patterns for the matrix), split every component with `fin_cases`, and
-    let `simp` unfold the definitions and the sums over `Fin 2 × Fin 2`.
+H1. Both sides are finite objects indexed by pairs; compare them one basis entry at a time (R1, R17), and
+    split every component into its two values (R2).
+H2. After `ext` and `fin_cases`, one `simp` per goal does the arithmetic, but only if you name the
+    definitions, the product (`Matrix.mulVec, dotProduct` for a matrix times a vector, R4–R5;
+    `Matrix.mul_apply` for a matrix product, R18) and the sum over pairs (`Fintype.sum_prod_type`, R7).
 H3. `ext ⟨a, b⟩; fin_cases a <;> fin_cases b <;> simp [CNOT, H, ket, tensor, bell, Matrix.mulVec, dotProduct, Fintype.sum_prod_type]`;
     `ext ⟨a, b⟩ ⟨c, d⟩; fin_cases a <;> fin_cases b <;> fin_cases c <;> fin_cases d <;> simp [CNOT, Matrix.mul_apply, Fintype.sum_prod_type]`.
 -/

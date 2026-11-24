@@ -4,19 +4,13 @@ GOAL
   it always produces a canonical run list, and it undoes decoding on canonical run lists. Together the
   three theorems pin `encode` down uniquely.
 
-REFERENCE
-  example : List.replicate 3 'a' = ['a', 'a', 'a'] := rfl     -- `replicate n a`: n copies of a
-  #check @List.replicate_succ  -- replicate (n + 1) a = a :: replicate n a
-  #check @List.cons_append     -- (a :: as) ++ bs = a :: (as ++ bs)
-  example : (fun | [] => 0 | _ :: _ => 1 : List Nat → Nat) [5] = 1 := rfl  -- `fun` with match arms
-  -- `def g : List α → β := fun | [] => .. | x :: xs => .. g xs ..` recurses structurally like equations.
-  -- `simp only [encode]` unfolds one step; `split` cases on a `match`/`if` in the goal,
-  -- `rename_i y n r heq` names the anonymous hypotheses it made (heq : encode xs = (y, n) :: r).
-  example (a b : Nat) (n m : Nat) (h : (a, n) = (b, m)) : a = b := by injection h  -- pair equality
-  example (n : Nat) (h : 0 < n) : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩  -- then `obtain ⟨k, rfl⟩ := ...`
 BANNED: grind, fun_induction, try?, exact?, apply?, import
-NOTE: The `:=` of `encode` is frozen, so write its body as `fun | ... => ...` (or any term).
-NOTE: Do not add imports or leave search tactics (`exact?`, `apply?`, `try?`) in the file. No `grind`: use `split`.
+
+GUIDE
+  Entries R1–R28: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace H013
@@ -33,11 +27,36 @@ def Canonical {α : Type} : List (α × Nat) → Prop
   | (a, n) :: (b, m) :: r => 0 < n ∧ a ≠ b ∧ Canonical ((b, m) :: r)
 -- END SPEC
 
+/- SKELETON · encode
+  1. The `:=` is frozen: the body is one term, a `fun` with two arms `[]` and `x :: xs`   R1
+  2. In the `x :: xs` arm, `match` on the recursive result `encode xs`, and in its cons arm
+     compare `x` with the first run's symbol by `if x = y`                              R2
+     (empty encoding → one new run; same symbol → bump the count; else → push `(x, 1)`)
+  3. Test it: `example : encode [1, 1, 2] = [(1, 2), (2, 1)] := rfl`
+-/
 -- BEGIN SPEC
 def encode {α : Type} [DecidableEq α] : List α → List (α × Nat) :=
 -- END SPEC
   sorry
 
+/- SKELETON · the three MILESTONES (prove these FIRST)
+  canonical_bump and canonical_push are used in encode_canonical (bump in the `x = y` branch,
+  push in the `x ≠ y` branch); encode_replicate_append is used in encode_decode, once per case.
+  canonical_bump, canonical_push, each:
+    1. `Canonical` looks two runs ahead: case on `r`                                 R3
+    2. in the cons case, take the head pair apart                                    R4
+    3. unfold `Canonical` in `h` and in the goal                                     R5
+    4. close: `⟨…, …⟩` from `h`'s parts, counts by `omega`                           R7, R6
+    nil case: bump's is `simp [Canonical]`; push's needs R5, then R7 with `hxy` and `h`
+       (`simp [Canonical]` alone leaves `¬x = y ∧ 0 < n` there)
+  encode_replicate_append:
+    1. `induction n`                                                                R8
+    2. zero: make the argument a cons, unfold `encode` once                          R9, R10, R11
+       split the `match`, name the hypotheses, split the `if`                       R12, R13, R14
+         `a = y` branch: impossible by `hy`                                          R15, R16
+         other branches: `rw [heq]`
+    3. succ: make the argument a cons, unfold once, use `ih`, compute               R17, R18, R11 (rw), rw [ih], R19
+-/
 -- MILESTONE (optional: change or delete)
 theorem canonical_bump {α : Type} (y : α) (n : Nat) (r : List (α × Nat))
     (h : Canonical ((y, n) :: r)) : Canonical ((y, n + 1) :: r) := by
@@ -54,16 +73,44 @@ theorem encode_replicate_append {α : Type} [DecidableEq α] (a : α) (n : Nat) 
     encode (List.replicate (n + 1) a ++ ys) = (a, n + 1) :: encode ys := by
   sorry
 
+/- SKELETON · decode_encode
+  1. `induction xs`; the `nil` case is `rfl`                                         R8 (on a list)
+  2. cons: unfold `encode (x :: xs)` once                                            R11
+  3. all three arms in one line: split the `match`, then (where there is one) the `if`,
+     and simplify with `decode`, `List.replicate_succ` and the hypotheses           R12 <;> R20 (R14) <;> R21
+-/
 -- BEGIN SPEC
 theorem decode_encode {α : Type} [DecidableEq α] (xs : List α) : decode (encode xs) = xs :=
 -- END SPEC
   sorry
 
+/- SKELETON · encode_canonical  (uses canonical_bump, canonical_push)
+  1. `induction xs`; the `nil` goal `Canonical (encode [])` computes to `True`       R8, R22
+  2. cons: unfold `encode (x :: xs)` once, split the `match`                         R11, R12
+  3. cons arm: name `y n r heq`, rewrite `heq` into `ih`, split the `if`             R13, R23, R14
+       `x = y`  → canonical_bump applied to `ih`
+       `x ≠ y`  → name the `¬x = y` hypothesis, canonical_push applied to it and `ih` R13
+  4. empty arm: `Canonical [(x, 1)]`                                                 simp [Canonical]
+-/
 -- BEGIN SPEC
 theorem encode_canonical {α : Type} [DecidableEq α] (xs : List α) : Canonical (encode xs) :=
 -- END SPEC
   sorry
 
+/- SKELETON · encode_decode  (uses encode_replicate_append)
+  1. `induction l`; the `nil` case is `rfl`.
+     cons: split the head pair `(a, n)`, case on the rest                             R8, R4, R3
+  2. one-run case `[(a, n)]`: unfold `Canonical` in `h` (gives `0 < n`), write
+     `n = k + 1`, then the milestone with `ys := []`, finished by simplification      R5, R25, R26
+     (its `hy` argument: `encode [] = []` is not a cons, `simp [encode]`)
+  3. two-run case `(a, n) :: (b, m) :: r`: unfold `Canonical` in `h`, take it apart,
+     `n = k + 1`                                                                       R5, R24, R25
+  4. the IH on the rest, `have ih' := ih hr`: `encode (decode ((b, m) :: r)) = (b, m) :: r`;
+     unfold `decode` in `ih'` and the goal                                            R5
+  5. `rw` with the milestone (`encode_replicate_append a k`), then `ih'`. Left out, its
+     `hy` argument becomes a second goal `case hy`. There: `rw [ih']`, then an equation
+     `(b, m) :: r = (a, m_1) :: r_1` gives `b = a`, contradicting `hab`               R27, R28
+-/
 -- BEGIN SPEC
 theorem encode_decode {α : Type} [DecidableEq α] (l : List (α × Nat)) (h : Canonical l) :
     encode (decode l) = l :=
@@ -73,12 +120,15 @@ theorem encode_decode {α : Type} [DecidableEq α] (l : List (α × Nat)) (h : C
 end H013
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Encode from the right: encode the tail first, then either extend its first run or start a new one.
-    Every proof then follows that recursion: `induction xs`, `simp only [encode]`, `split`.
-H2. `encode_decode` goes by induction on the run list. Decoding `(a, n) :: rest` gives
-    `replicate n a ++ decode rest`; the milestone `encode_replicate_append` re-encodes it, and its
-    hypothesis holds because `encode (decode rest) = rest` (IH) starts with a symbol `b ≠ a`.
+H1. Encode from the right: encode the tail, then extend its first run or push a new one. Every proof
+    follows that recursion: `induction`, unfold `encode` once (`simp only [encode]`), `split` the
+    `match` and the `if`. Prove the three MILESTONES first.
+H2. `encode_canonical`: in the cons arm `rw [heq] at ih`, then `canonical_bump` / `canonical_push`.
+    `encode_decode`: induction on the run list, `cases` on the rest, `n = k + 1` by
+    `obtain ⟨k, rfl⟩`; re-encode the first run with `encode_replicate_append`, whose `hy` holds
+    because the IH says the rest re-encodes to `(b, m) :: r` with `b ≠ a`.
 H3. `encode := fun | [] => [] | x :: xs => match encode xs with
        | (y, n) :: r => if x = y then (y, n + 1) :: r else (x, 1) :: (y, n) :: r | [] => [(x, 1)]`.
-    `encode_replicate_append`: `induction n`; the succ case is `rw [List.replicate_succ, List.cons_append, encode, ih]; simp`.
+    `decode_encode` cons case: `simp only [encode]; split <;> (try split) <;> simp_all [decode, List.replicate_succ]`.
+    `encode_replicate_append` succ case: `rw [List.replicate_succ, List.cons_append, encode, ih]; simp`.
 -/

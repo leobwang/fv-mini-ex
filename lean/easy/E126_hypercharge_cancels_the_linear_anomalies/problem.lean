@@ -4,15 +4,11 @@ GOAL
   hypercharge assignment `Y = (1, -4, 2, -3, 6, 0)` satisfies the gravitational, SU(2) and SU(3) anomaly
   equations `accGrav Y = 0`, `accSU2 Y = 0`, `accSU3 Y = 0`.
 
-REFERENCE
-  `(SMνCharges n).Charges` = rational charges of 6 species × `n` families; `Q S i` = charge of `Q` in family `i`.
-  #check SMνACCs.accGrav_decomp  -- accGrav S = 6 * ∑ i, Q S i + 3 * ∑ i, U S i + ... + ∑ i, N S i
-  #check SMνACCs.accSU2_decomp   -- accSU2 S = 3 * ∑ i, Q S i + ∑ i, L S i
-  #check SMνACCs.accSU3_decomp   -- accSU3 S = 2 * ∑ i, Q S i + ∑ i, U S i + ∑ i, D S i
-  #check SMνCharges.sum_one      -- for one family, a sum over families is its single term
-  #check SMνCharges.toSpecies_one -- (toSpecies j) S ⟨0, _⟩ = S j   (`Q = toSpecies 0`, ..., `N = toSpecies 5`)
-  `simp [Y]` then unfolds `Y` and evaluates `![1, -4, 2, -3, 6, 0] j`; `norm_num` finishes the ℚ arithmetic.
-NOTE: use sum_one, toSpecies_one before `simp [Y]` (unfolding Y first blocks them); `Y 0` fails (no numerals).
+GUIDE
+  Entries R1–R8: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.Particles.BeyondTheStandardModel.RHN.AnomalyCancellation.PlusU1.Basic
 
@@ -25,6 +21,15 @@ namespace E126
 def Y : (SMνCharges 1).Charges := ![1, -4, 2, -3, 6, 0]
 -- END SPEC
 
+/- SKELETON · Y_linear
+  1. Split the three equations:                                             R1
+  2. In each goal, in this order (collapse the sums BEFORE unfolding `Y`):
+       anomaly → one sum per species: the matching `_decomp` lemma         R2 / R3 / R4
+       one family: each sum → its single term                              R5
+       species in family 0 → entry of `Y`                                  R6
+       unfold `Y` and read off the entries                                 R7 (with `Y`)
+       finish the rational arithmetic, if a goal is left                   R8
+-/
 -- BEGIN SPEC
 theorem Y_linear : accGrav Y = 0 ∧ accSU2 Y = 0 ∧ accSU3 Y = 0 :=
 -- END SPEC
@@ -33,10 +38,10 @@ theorem Y_linear : accGrav Y = 0 ∧ accSU2 Y = 0 ∧ accSU3 Y = 0 :=
 end E126
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Split the conjunction with `refine ⟨?_, ?_, ?_⟩`; each anomaly is a linear map, so first write it as
-    sums over species and families.
-H2. `rw [accGrav_decomp]` (resp. `_SU2`, `_SU3`); with one family, `sum_one` and `toSpecies_one` turn
-    `∑ i, Q Y i` into the plain entry of `Y`. Then compute.
-H3. `rw [accGrav_decomp]; simp only [sum_one, toSpecies_one]; simp [Y]; norm_num` (the SU(2) goal is already
-    closed by `simp [Y]`).
+H1. Split the conjunction (R1). Each anomaly is a linear map defined as a sum over families; its
+    `_decomp` lemma (R2–R4) writes it as one sum per species, which is the form you can compute with.
+H2. With one family, `sum_one` (R5) turns `∑ i, Q Y i` into one term and `toSpecies_one` (R6) turns that
+    term into an entry of `Y`. Only then unfold `Y` (R7) and compute (R8).
+H3. Per conjunct: `rw [accGrav_decomp]; simp only [sum_one, toSpecies_one]; simp [Y]; norm_num`
+    (`accSU2_decomp` / `accSU3_decomp` for the others; the SU(2) goal is already closed by `simp [Y]`).
 -/

@@ -3,15 +3,11 @@ GOAL
   `ack` is the Ackermann function. Lean accepted it with no `termination_by`: it found the
   lexicographic order on `(m, n)` by itself. Prove `ack 2 3 = 9` and closed forms for `ack 1 n`, `ack 2 n`.
 
-REFERENCE
-  def t : Nat → Nat → Nat | 0, _ => 0 | m + 1, 0 => t m 9 | m + 1, n + 1 => t (m + 1) n + 1 termination_by m n => (m, n)
-    -- match two arguments at once; the measure `(m, n)` is compared lexicographically:
-    -- each call lowers `m`, or keeps `m` and lowers `n`. Lean guessed this measure for `ack`.
-  #check @ack.eq_3     -- ack (m+1) (n+1) = ack m (ack (m+1) n), one equation lemma per pattern
-  example (m n : Nat) : ack (m + 1) (n + 1) = ack m (ack (m + 1) n) := by rw [ack]   -- unfold one step
-  example : ack 1 1 = 3 := by simp [ack]   -- `simp [ack]` rewrites with all equations, also on literals
-  `induction n with | zero => … | succ k ih => …`, then `simp [ack, ih]` in the step.
-NOTE: `ack` uses well-founded recursion, so `rfl` and `decide` cannot evaluate it; use `simp [ack]`.
+GUIDE
+  Entries R1–R6: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace E079
@@ -23,11 +19,25 @@ def ack : Nat → Nat → Nat
   | m + 1, n + 1 => ack m (ack (m + 1) n)
 -- END SPEC
 
+/- SKELETON · ack_small
+  1. A closed computation (no variables): rewrite with the equations of `ack`
+     until only numerals are left; `rfl` and `decide` cannot do it:         R1
+-/
 -- BEGIN SPEC
 theorem ack_small : ack 2 3 = 9 :=
 -- END SPEC
   by simp [ack]
 
+/- SKELETON · ack_one
+  1. Induction on `n`:                                                      R3
+  2. Case `zero`: `ack 1 0 = 0 + 2` is a closed computation:                R1
+  3. Case `succ k ih`, goal `ack 1 (k + 1) = k + 1 + 2`:
+       unfold once (equation 3) → `ack 0 (ack 1 k)`                         R2
+       rewrite `ack 1 k` with `ih` → `ack 0 (k + 2)`                         rw [ih]
+       unfold `ack 0` (equation 1) → `k + 2 + 1 = k + 1 + 2`; `rw`         R2
+       closes it by itself (it tries `rfl` after rewriting)
+     (one `simp` with `ack` and `ih` does step 3)                            R4
+-/
 -- BEGIN SPEC
 theorem ack_one (n : Nat) : ack 1 n = n + 2 :=
 -- END SPEC
@@ -36,6 +46,15 @@ theorem ack_one (n : Nat) : ack 1 n = n + 2 :=
   | zero => simp [ack]
   | succ k ih => simp [ack, ih]
 
+/- SKELETON · ack_two
+  1. Induction on `n`:                                                      R3
+  2. Case `zero`: `ack 2 0` is a closed computation:                        R1
+  3. Case `succ k ih`: unfold once → `ack 1 (ack 2 k)`, then `ih`:          R2, rw [ih]
+       now `ack 1 (2 * k + 3)`: replace it with the closed form proved
+       above, the theorem `ack_one` at `2 * k + 3`:                          R5
+     (one `simp` with `ack`, `ih` and `ack_one` does step 3)                 R4, R5
+  4. What is left is linear arithmetic over `Nat`:                          R6
+-/
 -- BEGIN SPEC
 theorem ack_two (n : Nat) : ack 2 n = 2 * n + 3 :=
 -- END SPEC
@@ -47,9 +66,10 @@ theorem ack_two (n : Nat) : ack 2 n = 2 * n + 3 :=
 end E079
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `ack_small` is a closed computation; the other two are statements for every `n`, so induct on `n`.
-H2. In the step, `ack 1 (k + 1) = ack 0 (ack 1 k)`: unfold once, then use the induction hypothesis.
-    `ack_two` needs `ack_one` as well, since `ack 2 (k + 1) = ack 1 (ack 2 k)`.
-H3. `induction n with | zero => simp [ack] | succ k ih => simp [ack, ih]`; for `ack_two` add `ack_one`
-    to the simp set and finish with `omega`.
+H1. `ack_small` has no variables: evaluate it with the equations of `ack` (`rfl` fails on well-founded
+    recursion). The other two hold for every `n`, so they need induction on `n`.
+H2. In the step, unfold once and use `ih`: `ack 1 (k + 1) = ack 0 (ack 1 k)` and
+    `ack 2 (k + 1) = ack 1 (ack 2 k)`. The second leaves `ack 1 (2 * k + 3)`, which only `ack_one` removes.
+H3. `induction n with | zero => simp [ack] | succ k ih => simp [ack, ih]`; for `ack_two` the step is
+    `simp [ack, ih, ack_one]` followed by `omega`.
 -/

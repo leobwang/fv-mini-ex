@@ -5,8 +5,8 @@ GOAL
 
 GUIDE
   Entries R1–R26: one per tactic or lemma, with the proof state before and after.
-    ../../guide/medium/08_quantum_computing/M126_hadamard_gate.md     read
-    ../../guide/medium/08_quantum_computing/M126_hadamard_gate.lean   step through in the infoview
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
   Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
@@ -35,8 +35,9 @@ noncomputable def H : Matrix (Fin 2) (Fin 2) ℂ := ((Real.sqrt 2)⁻¹ : ℂ) �
        move it out first, then rw [h], then finish                          R25, rw [h], R26
 -/
 -- BEGIN SPEC
-theorem hadamard_conj : H * H = 1 ∧ H * X * H = Z ∧ H * Z * H = X ∧ H * Y * H = -Y := by
+theorem hadamard_conj : H * H = 1 ∧ H * X * H = Z ∧ H * Z * H = X ∧ H * Y * H = -Y :=
 -- END SPEC
+  by
   have h : (√ 2 : ℂ)⁻¹ * (√ 2 : ℂ)⁻¹ = 1 / 2 := by
     rw [← mul_inv, ← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)];
     norm_num

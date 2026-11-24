@@ -3,12 +3,11 @@ GOAL
   `fibIter` computes Fibonacci numbers in linear time with two accumulators. Prove it equals the
   exponential-time recursive definition `fib`.
 
-REFERENCE
-  example (k : Nat) : M026.fib (k + 2) = M026.fib k + M026.fib (k + 1) := rfl   -- by definition
-  example (f : Nat → Nat) (a b : Nat) (h : a = b) : f a = f b := by rw [h]
-  example (k n : Nat) : k + 1 + n = k + (n + 1) := by omega
-  -- Which invariant links the accumulators `a b` to `fib`? Try `a = fib k`, `b = fib (k + 1)`.
-  `congrArg f h : f a = f b` from `h : a = b`; in tactics, `congr 1` reduces `f a = f b` to `a = b`.
+GUIDE
+  Entries R1–R10: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M026
@@ -35,6 +34,25 @@ theorem fibAux_eq (n k : Nat) : fibAux n (fib k) (fib (k + 1)) = fib (k + n) := 
     congr 1
     omega
 
+/- SKELETON · fibIter_eq   (prove the MILESTONE helper first, above this theorem)
+  Why a helper: `fibIter (n + 1) = fibAux n 1 1` restarts from the pair `(1, 1)`, not `(0, 1)`, so
+  induction on this statement gets stuck. Generalise the start of the accumulator pair.
+  1. MILESTONE `fibAux_eq (n k : Nat)`: an equation saying what `fibAux n` returns when started from
+     the pair `(fib k, fib (k + 1))`, for EVERY start index `k`. Its proof:
+       induction on `n`, generalizing `k`                                       R1
+       zero: both sides compute to the same term                               R2
+       succ n ih:
+         the unfolding fact  h : fib k + fib (k + 1) = fib (k + 1 + 1)         R3
+         one accumulator step `fibAux (n + 1) a b`                             R4
+         fold the sum                                                          rw [h]
+         use `ih` at the next index `k + 1`                                    R5
+         strip `fib` from both sides, then arithmetic on the indices           R6 → R7
+  2. fibIter_eq, using the milestone at `k := 0`:
+       instantiate it as a hypothesis                                          R8
+       turn `0 + _` into `_` in it                                             R9
+       close: the goal is that hypothesis up to unfolding `fibIter`,
+       `fib 0`, `fib 1`                                                        R10
+-/
 -- BEGIN SPEC
 theorem fibIter_eq (n : Nat) : fibIter n = fib n :=
 -- END SPEC
@@ -46,7 +64,13 @@ theorem fibIter_eq (n : Nat) : fibIter n = fib n :=
 end M026
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. After `k` steps from `(0, 1)` the accumulators are `(fib k, fib (k + 1))`.
-H2. Prove `fibAux n (fib k) (fib (k + 1)) = fib (k + n)` for all `k`, by induction on `n` generalising `k`.
-H3. Succ case: rewrite `fib k + fib (k + 1)` to `fib (k + 1 + 1)` (true by `rfl`), apply `ih (k + 1)`, then `congr 1; omega`.
+H1. `fibIter_eq` is not inductive as stated: one step from `(0, 1)` gives `(1, 1)`. After `k` steps the
+    accumulators are `(fib k, fib (k + 1))`; say what `fibAux n` returns from THAT pair, for every `k`,
+    in a helper lemma above the theorem (SKELETON step 1).
+H2. Helper: `fibAux n (fib k) (fib (k + 1)) = fib (k + n)`, by `induction n generalizing k` (R1); the zero
+    case is `rfl` (R2). The theorem is the helper at `k := 0`: `have h := fibAux_eq n 0`, then
+    `simp only [Nat.zero_add] at h` and `exact h` (R8–R10).
+H3. Succ case: `have h : fib k + fib (k + 1) = fib (k + 1 + 1) := rfl`, then
+    `simp only [fibAux]; rw [h, ih (k + 1)]` (or all in one `simp only [fibAux, h, ih (k + 1)]`),
+    then `congr 1; omega`.
 -/

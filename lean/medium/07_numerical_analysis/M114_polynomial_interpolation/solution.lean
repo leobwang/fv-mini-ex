@@ -3,20 +3,12 @@ GOAL
   Through n distinct nodes `v i` (i ∈ s, n = s.card) there is exactly one real polynomial of degree < n
   with prescribed values `r i`. Existence: Lagrange's interpolant. Uniqueness: count roots (a nonzero
   polynomial of natDegree < n cannot vanish at n distinct points).
-
-REFERENCE
-  #check Lagrange.degree_interpolate_lt     -- (r) (hv : Set.InjOn v s) : (interpolate s v r).degree < s.card
-  #check Lagrange.eval_interpolate_at_node  -- (r) (hv) (hi : i ∈ s) : eval (v i) (interpolate s v r) = r i
-  #check Polynomial.eq_zero_of_natDegree_lt_card_of_eval_eq_zero'
-    -- p (t : Finset ℝ) (∀ x ∈ t, p.eval x = 0) (p.natDegree < t.card) : p = 0
-  #check Polynomial.degree_sub_le           -- (p - q).degree ≤ max p.degree q.degree
-  #check Polynomial.natDegree_lt_iff_degree_lt  -- p ≠ 0 → (p.natDegree < n ↔ p.degree < n)
-  #check Finset.card_image_of_injOn         -- Set.InjOn f s → (s.image f).card = s.card
-  example (P : ℕ → Prop) (h : P 0) (hu : ∀ m, P m → m = 0) : ∃! n, P n := ⟨0, h, hu⟩
-  `∃! p, P p` means `∃ p, P p ∧ ∀ q, P q → q = p`. `Set.InjOn v s`: v is injective on s (distinct nodes).
-  `p.degree : WithBot ℕ` (⊥ for p = 0), `p.natDegree : ℕ` (0 for p = 0). `ℝ[X]` needs `open Polynomial`.
 BANNED: eq_interpolate, eq_interpolate_of_eval_eq, eq_interpolate_iff, interpolate_eq_iff_values_eq_on, eq_zero_of_degree_lt_of_eval_finset_eq_zero, eq_of_degree_sub_lt_of_eval_finset_eq, eq_of_degrees_lt_of_eval_finset_eq, eq_of_degree_le_of_eval_finset_eq, eq_zero_of_degree_lt_of_eval_index_eq_zero, eq_of_degree_sub_lt_of_eval_index_eq, eq_of_degrees_lt_of_eval_index_eq, eq_of_degree_le_of_eval_index_eq, eq_of_natDegree_lt_card_of_eval_eq, eq_of_natDegree_lt_card_of_eval_eq', funEquivDegreeLT
-NOTE: `Lagrange.interpolate s v` is a linear map; `Lagrange.interpolate s v r` applies it to the values `r`.
+GUIDE
+  Entries R1–R20: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
@@ -24,6 +16,21 @@ open Polynomial
 
 namespace M114
 
+/- SKELETON · interpolation_exists_unique
+  1. Witness `Lagrange.interpolate s v r`, its two properties, and the uniqueness goal:   R1, R2
+       degree < ↑s.card                                                                   R3
+       the values at the nodes, as `fun i hi => …`                                        R4
+  2. Uniqueness: take `q` with `hdeg`, `hval`                                             R5
+     `q = interpolant` → `q - interpolant = 0`, name the difference `d`                    R6, R7
+     assume `hd : ¬d = 0` (R20 below needs `d ≠ 0`)                                        R8
+  3. Prove first, while there is one goal:
+       hdeg' : d.degree < ↑s.card                                                         R11 with R9, R10, R3
+  4. Back to `d = 0`; count roots on the points `Finset.image v s` (a Finset ℝ)           R12, R13
+  5. Roots goal: `intro x hx`, then turn `x` into `v i` with `hi : i ∈ s`                  R14 → R15
+       evaluate with one `simp only [d, …]`: unfold d, split eval, use `hval i hi` and R4,
+       cancel                                                                             R16, R17, R4, R18
+  6. Size goal: image card → `s.card`, natDegree → degree (needs `hd`), then `hdeg'`       R19, R20
+-/
 -- BEGIN SPEC
 theorem interpolation_exists_unique {ι : Type*} [DecidableEq ι] (s : Finset ι) (v : ι → ℝ)
     (hv : Set.InjOn v s) (r : ι → ℝ) :
@@ -50,12 +57,16 @@ theorem interpolation_exists_unique {ι : Type*} [DecidableEq ι] (s : Finset ι
 end M114
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. The witness is `Lagrange.interpolate s v r`. For uniqueness, `rintro q ⟨hdeg, hval⟩` and study
-    `d := q - Lagrange.interpolate s v r`: after `rw [← sub_eq_zero]` the goal is `d = 0`; argue `by_contra hd`.
-H2. Suppose `d ≠ 0`. Its degree is < s.card (`degree_sub_le` + `max_lt`), and it vanishes at every point
-    of `s.image v`, a Finset with s.card elements because `v` is injective on `s`. Root counting says d = 0.
-H3. `apply hd` (goal back to `d = 0`), then `apply eq_zero_of_natDegree_lt_card_of_eval_eq_zero' d (s.image v)`;
+H1. Existence is Mathlib's: the witness is `Lagrange.interpolate s v r`, and R3, R4 give its two
+    properties. Uniqueness is root counting: if `q` also works, `d := q - Lagrange.interpolate s v r` has
+    degree < s.card and vanishes at the s.card distinct points `v i`. Argue by contradiction (`d ≠ 0`),
+    because turning `degree <` into `natDegree <` (R20) needs it.
+H2. `refine ⟨Lagrange.interpolate s v r, ⟨?_, ?_⟩, ?_⟩`; then `rintro q ⟨hdeg, hval⟩`, `rw [← sub_eq_zero]`,
+    `set d := q - Lagrange.interpolate s v r`, `by_contra hd`. The degree bound: `lt_of_le_of_lt
+    (degree_sub_le _ _) (max_lt hdeg …)`. Then `apply hd` and count roots on `s.image v`, whose size is
+    s.card because `v` is injective on `s` (`Finset.card_image_of_injOn hv`).
+H3. `apply eq_zero_of_natDegree_lt_card_of_eval_eq_zero' d (s.image v)`;
     roots: `intro x hx`, `obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp hx`, then `simp only [d, eval_sub,
-    hval i hi, Lagrange.eval_interpolate_at_node r hv hi, sub_self]`; size: `rw [Finset.card_image_of_injOn hv,
-    natDegree_lt_iff_degree_lt hd]`.
+    hval i hi, Lagrange.eval_interpolate_at_node r hv hi, sub_self]`;
+    size: `rw [Finset.card_image_of_injOn hv, natDegree_lt_iff_degree_lt hd]`, then `exact hdeg'`.
 -/

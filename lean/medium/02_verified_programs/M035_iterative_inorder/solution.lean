@@ -3,14 +3,11 @@ GOAL
   The textbook stack-based in-order traversal (push the left spine; pop a node, emit it, push the
   left spine of its right subtree) returns exactly the recursive `inorder` list.
 
-REFERENCE
-  -- `loop`'s argument does not shrink structurally, so it is defined by well-founded recursion on
-  -- `weight st` (`termination_by`). Such definitions do not compute by `rfl`/`decide`:
-  --   example : loop [] = [] := rfl              -- fails
-  example : loop [] = [] := by rw [loop]         -- unfold one step with the equation lemma
-  #check @loop.eq_2   -- loop ((x, r) :: st) = x :: loop (pushLeft r st)
-  #check @List.append_assoc  -- as ++ bs ++ cs = as ++ (bs ++ cs)
-  -- `induction t generalizing st with | leaf => _ | node l x r ihl ihr => _`
+GUIDE
+  Entries R1–R10: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M035
@@ -59,6 +56,26 @@ theorem loop_pushLeft (t : Tree) (st : List (Nat × Tree)) :
   | leaf => rfl
   | node l x r ihl ihr => rw [pushLeft, ihl, loop, ihr]; simp [inorder]
 
+/- SKELETON · iterInorder_eq   (prove the MILESTONE helper first, above this theorem)
+  Why a helper: `iterInorder t` is `loop (pushLeft t [])`, but after the first pop the stack is no
+  longer `[]`, so induction on this statement gets stuck. Generalise the stack.
+  1. MILESTONE `loop_pushLeft (t : Tree) (st : List (Nat × Tree))`: an equation saying what
+     `loop (pushLeft t st)` emits for ANY stack `st` underneath (all of `t`, then what `st` gives).
+     Its proof:
+       induction on `t`, generalizing `st`                                       R1
+       leaf: both sides unfold (structural definitions only) to the same list    R2
+       node l x r:
+         unfold one `pushLeft` step: the stack becomes `(x, r) :: st`            R3
+         use `ihl` at that stack                                                 R4
+         pop `(x, r)`: one step of the well-founded `loop`                       R5
+         use `ihr` at the stack `st`                                             R4
+         unfold `inorder`, reassociate `++`, close                               R8 (R6, R7)
+  2. iterInorder_eq, using the milestone at `st := []`:
+       unfold `iterInorder` (non-recursive definition)                           rw [iterInorder]
+       rewrite with the milestone                                                R4
+       `loop [] = []`                                                            R9
+       drop `++ []`                                                              R10
+-/
 -- BEGIN SPEC
 theorem iterInorder_eq (t : Tree) : iterInorder t = inorder t :=
 -- END SPEC
@@ -69,9 +86,11 @@ end M035
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
 H1. `iterInorder t = inorder t` is not inductive: after one step the stack is no longer empty, and
     the left subtree's spine sits on top of saved nodes. State what `loop` does on `pushLeft t st` for
-    an arbitrary stack `st` underneath, as a helper lemma above the main theorem.
-H2. Prove the helper by induction on `t` generalizing `st`. In the `node` case, unfold `pushLeft` once,
-    use `ihl`, then unfold one `loop` step (it pops `(x, r)`), then use `ihr`.
+    an arbitrary stack `st` underneath, as a helper lemma above the main theorem (SKELETON step 1).
+H2. Prove the helper by `induction t generalizing st` (R1). The `leaf` case is `rfl` (R2). In the
+    `node` case: `rw [pushLeft]`, then `ihl`, then `rw [loop]` (it pops `(x, r)`; `loop` is well-founded,
+    so only its equation lemmas unfold it), then `ihr`, and close with `simp [inorder]`. The main
+    theorem is the helper at `st := []` plus `loop [] = []` and `List.append_nil`.
 H3. Helper: `theorem loop_pushLeft (t : Tree) (st : List (Nat × Tree)) : loop (pushLeft t st) =
-    inorder t ++ loop st`. The main theorem is then `loop_pushLeft t []` plus `loop [] = []`.
+    inorder t ++ loop st`; node case `rw [pushLeft, ihl, loop, ihr]; simp [inorder]`.
 -/

@@ -3,23 +3,38 @@ GOAL
   For independent square-integrable `X`, `Y`: `Var(X + Y) = Var X + Var Y`. Expand `E[(X + Y)²]` with
   `Var Z = E[Z²] - E[Z]²` and kill the cross term with `E[X Y] = E[X] E[Y]`.
 
-REFERENCE
-  `MemLp X 2 μ`: `X` is square-integrable (`E[X²] < ∞`). `μ[X]` is `E[X] = ∫ ω, X ω ∂μ`; `Var[X; μ]` is the variance; `X ⟂ᵢ[μ] Y`: independent.
-  #check variance_eq_sub     -- MemLp X 2 μ → Var[X; μ] = μ[X ^ 2] - μ[X] ^ 2
-  #check MemLp.add           -- MemLp f p μ → MemLp g p μ → MemLp (f + g) p μ
-  #check MemLp.integrable    -- 1 ≤ q → MemLp f q μ → Integrable f μ    (`hX.integrable one_le_two`)
-  #check MemLp.integrable_sq -- MemLp f 2 μ → Integrable (fun x => f x ^ 2) μ
-  #check MemLp.integrable_mul  -- `hX.integrable_mul hY : Integrable (X * Y) μ` for two L² functions (Hölder)
-  #check IndepFun.integral_mul_eq_mul_integral  -- X ⟂ᵢ[μ] Y → AEStronglyMeasurable X μ → (… Y) → μ[X * Y] = μ[X] * μ[Y]
-  #check MemLp.aestronglyMeasurable  -- MemLp f p μ → AEStronglyMeasurable f μ
-  `(X + Y) ^ 2` is a power of functions: `((X + Y) ^ 2) ω = (X ω + Y ω) ^ 2` (`Pi.pow_apply`, `Pi.add_apply`).
-NOTE: `rw [integral_add hf hg]` fires only if `hf : Integrable (fun ω => …) μ` has the integrand's exact lambda shape.
 BANNED: variance_add, variance_fun_add, variance_sum, variance_fun_sum, variance_sum', variance_fun_sum', variance_sum_pi, variance_add_prod, covariance_eq_zero, exact?, apply?, try?, rw?, hint, observe
+
+GUIDE
+  Entries R1–R13: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace M091
 
+/- SKELETON · variance_add_indep
+  1. Integrability of the variables themselves (for `E[X + Y]` at the end):  R1
+       hXi : Integrable X μ          hYi : Integrable Y μ
+  2. The cross term, from independence:                                      R2 → R3
+       hprod : μ[fun ω => X ω * Y ω] = μ[X] * μ[Y]
+  3. Integrability of the three pieces of X² + 2XY + Y², types in `fun` form:
+       i1 : Integrable (fun ω => X ω ^ 2) μ                                 R4
+       i2 : Integrable (fun ω => 2 * (X ω * Y ω)) μ                         R5 → R6
+       i3 : Integrable (fun ω => Y ω ^ 2) μ                                 R4
+       i12 : Integrable (fun ω => X ω ^ 2 + 2 * (X ω * Y ω)) μ              R7 (from i1, i2)
+  4. The integrand identity
+       e : (fun ω => ((X + Y) ^ 2) ω) = fun ω => X ω ^ 2 + 2 * (X ω * Y ω) + Y ω ^ 2
+     proof: funext ω, then                                                   R8, then ring
+  5. Open the three variances (the first needs `MemLp (X + Y) 2 μ`):         R9 → R10, R10, R10
+  6. Replace the integrand, split it outer `+` first, pull out `2`, use the cross term:
+                                                                             R11 (rw [e]), R12 (i12, i3),
+                                                                             R12 (i1, i2), R13, rw [hprod]
+  7. Unfold `(X + Y) x`, `(X ^ 2) x` in the whole goal, split `E[X + Y]`:    R8, R12 (hXi, hYi)
+  8. Close the identity between expectations:                                ring
+-/
 -- BEGIN SPEC
 open MeasureTheory ProbabilityTheory
 
@@ -32,11 +47,14 @@ theorem variance_add_indep {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [
 end M091
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Rewrite all three variances with `variance_eq_sub`; the goal becomes an identity between expectations.
-H2. Restate `(X + Y) ^ 2` as `fun ω => X ω ^ 2 + 2 * (X ω * Y ω) + Y ω ^ 2` (a `have … := by funext ω; …; ring`),
-    split the expectation with `integral_add` (integrability `have`s first), and replace `μ[X * Y]` by `μ[X] * μ[Y]`.
+H1. Open all three variances with `variance_eq_sub` (R10); the goal becomes an identity between
+    expectations. Every `integral_add` you will need wants integrability proofs: collect them first (R1, R4–R7).
+H2. State `(X + Y) ^ 2` pointwise as `e : (fun ω => ((X + Y) ^ 2) ω) = fun ω => X ω ^ 2 + 2 * (X ω * Y ω) + Y ω ^ 2`
+    (`funext ω; simp only [Pi.pow_apply, Pi.add_apply]; ring`), rewrite with it, split the integral with
+    `integral_add` (outer `+` first), pull the `2` out with `integral_const_mul`, and replace `E[XY]` with the
+    independence fact (R3). Then `simp only [Pi.add_apply, Pi.pow_apply]`, split `E[X + Y]`, and `ring`.
 H3. `have hprod : μ[fun ω => X ω * Y ω] = μ[X] * μ[Y] := hXY.integral_mul_eq_mul_integral hX.aestronglyMeasurable hY.aestronglyMeasurable`,
-    then `rw [e, integral_add i12 i3, integral_add i1 i2, integral_const_mul, hprod]`, where `i12 : Integrable
-    (fun ω => X ω ^ 2 + 2 * (X ω * Y ω)) μ`, `i3`, `i1`, `i2` are the pieces. Split `μ[X + Y]` the same way
-    (`simp only [Pi.add_apply]` first) and finish with `ring`.
+    then `rw [variance_eq_sub (hX.add hY), variance_eq_sub hX, variance_eq_sub hY, e, integral_add i12 i3,
+    integral_add i1 i2, integral_const_mul, hprod]`, where `i12 : Integrable (fun ω => X ω ^ 2 + 2 * (X ω * Y ω)) μ`
+    is `i1.add i2` with its type written out.
 -/

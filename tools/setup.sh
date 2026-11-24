@@ -114,7 +114,7 @@ else
   # physlib has no prebuilt cache. Build just the modules the exercises import (and
   # their dependencies), once; a rerun is a quick no-op.
   PL_MODS=$(grep -rhoE '^import (Physlib|QuantumInfo)[A-Za-z0-9_.]*' \
-    "$ROOT/lean/easy" "$ROOT/lean/medium" "$ROOT/lean/hard" "$ROOT/lean/solutions" | sort -u | sed 's/^import //')
+    "$ROOT/lean/easy" "$ROOT/lean/medium" "$ROOT/lean/hard" | sort -u | sed 's/^import //')
   PL_OUT="$ROOT/lean/.lake/packages/physlib/.lake/build/lib/lean"
   PL_MISSING=""
   for m in $PL_MODS; do

@@ -4,18 +4,11 @@ GOAL
   (a list of signs, one per variable): `ite` joins both branches, `while` iterates until stable.
   Prove it sound: if `st` describes the start state of a terminating run, `aexec c st` describes the end.
 
-REFERENCE
-  -- `Approx st s`: every variable's sign in `st` describes its value in `s` (`Sign.gamma`, as in M046).
-  example : H025.lookup [] 5 = .top := rfl   -- missing entries are `top`, so `[]` describes every state
-  example : H025.ajoin [.pos, .neg] [.pos, .zero] = [.pos, .top] := rfl   -- pointwise join, cut to the shorter
-  #check @Int.mul_pos_of_neg_of_neg   -- a < 0 → b < 0 → 0 < a * b
-  -- siblings for the other sign cases: Int.mul_pos, Int.mul_neg_of_pos_of_neg, Int.mul_neg_of_neg_of_pos
-  example (x y : H025.AState) : (if x = y then x else y) = y := by
-    split <;> simp_all   -- `split` cases on the `if` in the goal; `next heq => ..` names the condition
-  -- `induction c generalizing s s' st with | ... | «while» b c ih => ..` (`while` is a keyword).
-  -- Before inducting on `h : BigStep (.while b c) s s'`: `generalize hw : Com.while b c = w at h`.
-  -- Inversion: `cases h with | iteT hb h1 => .. | iteF hb h2 => ..` on `h : BigStep (.ite b c1 c2) s s'`.
-NOTE: Do not leave search tactics (`exact?`, `apply?`, `try?`) in the file.
+GUIDE
+  Entries R1–R25: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace H025
@@ -149,11 +142,29 @@ def Approx (st : AState) (s : State) : Prop := ∀ x, (lookup st x).gamma (s x)
 -- END SPEC
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · aeval_sound
+  0. Add three helpers above it first (they are the M046 lemmas):
+       plus_sound  : a.gamma x → b.gamma y → (a.plus b).gamma (x + y)
+         all 16 sign pairs, unfold `Sign.plus` and `Sign.gamma`, arithmetic       R1, R2, R3
+       times_sound : the same for `Sign.times` and `x * y`
+         R1, R2; four goals are left, in the order neg·neg, neg·pos, pos·neg, pos·pos: R5, R7, R6, R4
+       ofInt_sound : (Sign.ofInt n).gamma n
+         unfold, split the outer `if`, then the inner one; simp_all, omega        R8, R9, R2, R3
+  1. Induct on `e`; each of the four cases is one `exact` with a helper, or `h x`  R11
+-/
 theorem aeval_sound (st : AState) (s : State) (h : Approx st s) (e : AExp) :
     (aevalSign st e).gamma (aeval s e) := by
   sorry
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · lookup_ajoin_left   (lookup_ajoin_right: the same, with join_right)
+  0. Helpers above it: join_left : a.gamma v → (a.join b).gamma v, and join_right
+       unfold `Sign.join`, split, then simp_all with `Sign.gamma`                 R8, R9, R2
+  1. Induct on `p`, generalizing `q x` (the recursion moves both)                  R12
+  2. p = []: `ajoin` gives [], `lookup` gives top, `Sign.gamma .top v` is True     R15
+  3. p = a :: as: split `q`; q = [] as in step 2                                   R13, R15
+  4. both cons: split `x`; zero → join_left; succ n → the IH at `bs` and `n`       R14
+-/
 theorem lookup_ajoin_left (p q : AState) (x : Nat) (v : Int) (h : (lookup p x).gamma v) :
     (lookup (ajoin p q) x).gamma v := by
   sorry
@@ -163,6 +174,14 @@ theorem lookup_ajoin_right (p q : AState) (x : Nat) (v : Int) (h : (lookup q x).
   sorry
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · approx_aupdate
+  1. `Approx` is a `∀`: introduce the variable `y` to check                        R16
+  2. Induct on `st`, generalizing `x y s`; st = []: compute                        R12, R15
+  3. st = b :: bs: split `x`, then `y`                                             R14
+  4. the three cases with a `0`: simplify and close with hv, h (m + 1) or h 0      R18
+  5. succ n / succ m: the IH at the shifted state `fun k => s (k + 1)`, whose
+     description is `fun k => h (k + 1)`; then simplify it into the goal           R17 → R18
+-/
 theorem approx_aupdate (st : AState) (s : State) (h : Approx st s) (x : Nat) (a : Sign) (v : Int)
     (hv : a.gamma v) : Approx (aupdate st x a) (update s x v) := by
   sorry
@@ -171,18 +190,52 @@ theorem approx_aupdate (st : AState) (s : State) (h : Approx st s) (x : Nat) (a 
 /-- `Le p q` (`p ⊑ q`): every concrete state described by `p` is described by `q`. -/
 def Le (p q : AState) : Prop := ∀ s, Approx p s → Approx q s
 
+/- SKELETON · iterate_post
+  1. Induct on the fuel `k`, generalizing `x` (cases `zero`, `succ k ih`)          R12
+  2. zero: the result is `[]`; each part: introduce s, hs, y, then compute         R16, R15
+  3. succ: unfold one round, split on the stability test, name it `heq`           R19, R9, R10
+       stable, heq : ajoin init (f x) = x: give `hx`, open the second part,
+         rewrite the goal's `x` back with ← heq, then lookup_ajoin_right          R20, rw [← heq]
+       not stable: the IH at `ajoin init (f x)`; its argument `init ⊑ ajoin init (f x)`
+         is `fun s hs y => …` (R16 in term mode) closed by lookup_ajoin_left      R16
+-/
 theorem iterate_post (f : AState → AState) (init : AState) (k : Nat) (x : AState)
     (hx : Le init x) : Le init (iterate f init k x) ∧
       Le (f (iterate f init k x)) (iterate f init k x) := by
   sorry
 
 -- MILESTONE (optional: change or delete)
+/- SKELETON · while_inv
+  1. Replace the command `Com.while b c` in `h` by a variable `w`, keeping hw      R21
+  2. Induct on the run `h`; name whileF and whileT, catch the rest with `_`       R22
+       whileF: the end state is the start state
+       whileT: substitute the equation (R24); ih2 needs `Approx I` of the state
+         after one body run: hc on that run, then hI; and the equation (rfl)
+       the other five rules: hw equates different constructors                  R23
+-/
 theorem while_inv {b : BExp} {c : Com} (I : AState)
     (hc : ∀ st s s', BigStep c s s' → Approx st s → Approx (aexec c st) s')
     (hI : Le (aexec c I) I) {s s' : State} (h : BigStep (.while b c) s s') (hs : Approx I s) :
     Approx I s' := by
   sorry
 
+/- SKELETON · aexec_sound
+  Prove the milestones first, in this order. Where each one is used:
+    aeval_sound (Part 1)                         step 3
+    lookup_ajoin_left, lookup_ajoin_right (2)    step 5, and inside iterate_post
+    approx_aupdate (3)                           step 3
+    iterate_post (4), while_inv (5)              step 6
+  1. Induct on the command, generalizing `s s' st` (the IH must hold for every
+     run of the body and every abstract state); the last case is «while»          R11, R12
+  2. skip:   invert `h` (the end state is the start state), then hs              R25
+  3. assign: invert `h`; approx_aupdate, its `hv` from aeval_sound                R25
+  4. seq:    invert `h` into two runs; the IH for c1, then the IH for c2 on it   R25
+  5. ite:    invert `h` into iteT / iteF; the IH for the branch taken, then
+             lookup_ajoin_left / _right for each variable (`fun y => …`)          R25, R16
+  6. while:  iterate_post (aexec c) st 10 st (its `hx : st ⊑ st` is `fun _ h => h`)
+             gives, for I := iterate (aexec c) st 10 st, st ⊑ I and aexec c I ⊑ I;
+             then while_inv, its `hc` built from ih (reorder: `fun st s s' h hs => …`)
+-/
 -- BEGIN SPEC
 theorem aexec_sound {c : Com} {s s' : State} (h : BigStep c s s') (st : AState)
     (hs : Approx st s) : Approx (aexec c st) s' :=
@@ -192,7 +245,19 @@ theorem aexec_sound {c : Com} {s s' : State} (h : BigStep c s s') (st : AState)
 end H025
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Three layers: expressions (M046's `plus_sound`/`times_sound` plus `(Sign.ofInt n).gamma n`), abstract-state operations (`lookup` after `ajoin`/`aupdate`), and commands. The only hard case is `while`: you need an abstract state that is stable under the loop body.
-H2. `iterate_post`: induction on the fuel `k` generalizing `x`; fuel `0` returns `[]` (describes everything); in the stable branch `x = ajoin init (f x)`, so `f x ⊑ x` by `lookup_ajoin_right`. `approx_aupdate`: `intro y`, then `induction st generalizing x y s` and `cases x`, `cases y`; in the `succ`/`succ` case the tail describes the shifted state `fun k => s (k + 1)`. Then `while_inv`: an `I` with `aexec c I ⊑ I` is an invariant of every run (generalize the `while`, induct on the run). Main: `induction c generalizing s s' st`, so the IH for the body holds for every run and every abstract state.
-H3. `while` case: `have hp := iterate_post (aexec c) st 10 st (fun _ h => h)` then `exact while_inv _ (fun st s s' h hs => ih h st hs) hp.2 h (hp.1 _ hs)`. `approx_aupdate`, `succ n`/`succ m` case: `have := ih (fun k => s (k + 1)) (fun k => h (k + 1)) n m`, then `simpa [aupdate, lookup, update] using this`. `lookup_ajoin_left`/`_right`: `induction p generalizing q x`, then `cases q` and `cases x`; the head case is `(a.join b).gamma v` from `a.gamma v` (resp. `b.gamma v`): `unfold Sign.join; split`.
+H1. Three layers, one milestone group each: expressions (Part 1), the list operations `lookup` after
+    `ajoin` / `aupdate` (Parts 2, 3), and commands (Parts 4–6). Every case of `aexec_sound` but `while`
+    is "invert the run, apply the IHs and one milestone". For `while` you need an abstract state `I`
+    that is stable under the body (`aexec c I ⊑ I`): `iterate_post` finds one, `while_inv` shows it holds
+    after every run of the loop.
+H2. Induct on what the recursion walks, generalizing every argument that changes in the recursive call:
+    `induction e` (Part 1); `induction p generalizing q x`, then `cases q`, `cases x` (Part 2);
+    `intro y; induction st generalizing x y s`, then `cases x`, `cases y` (Part 3; the tail describes the
+    shifted state `fun k => s (k + 1)`); `induction k generalizing x` (Part 4; in the stable branch
+    `x = ajoin init (f x)`, so `f x ⊑ x` by `lookup_ajoin_right`); `generalize hw : Com.while b c = w at h`,
+    then `induction h` (Part 5); `induction c generalizing s s' st` and `cases h` (Part 6).
+H3. `while` case: `have hp := iterate_post (aexec c) st 10 st (fun _ h => h)` then
+    `exact while_inv _ (fun st s s' h hs => ih h st hs) hp.2 h (hp.1 _ hs)`.
+    `approx_aupdate`, `succ n` / `succ m`: `have := ih (fun k => s (k + 1)) (fun k => h (k + 1)) n m`, then
+    `simpa [aupdate, lookup, update] using this`. Head case of `lookup_ajoin_left`: `unfold Sign.join; split`.
 -/

@@ -2,22 +2,36 @@
 GOAL
   `(E[XY])² ≤ E[X²] E[Y²]`. For every real `t`, `E[(X - tY)²] ≥ 0` is a quadratic in `t` that never
   goes negative, so its discriminant is `≤ 0`.
-
-REFERENCE
-  `μ[f]` is `∫ ω, f ω ∂μ` (here `μ` is any measure). `Integrable f μ`: `∫ |f| ∂μ < ∞`.
-  #check integral_nonneg      -- 0 ≤ f → 0 ≤ ∫ x, f x ∂μ     (`0 ≤ f` is `∀ ω, 0 ≤ f ω`)
-  #check integral_add         -- Integrable f μ → Integrable g μ → ∫ a, f a + g a ∂μ = ∫ f + ∫ g
-  #check integral_const_mul   -- ∫ a, r * f a ∂μ = r * ∫ a, f a ∂μ
-  #check Integrable.const_mul -- Integrable f μ → ∀ c, Integrable (fun x => c * f x) μ   (and `.add`)
-  #check discrim_le_zero      -- (∀ x, 0 ≤ a * (x * x) + b * x + c) → discrim a b c ≤ 0
-  #check discrim              -- discrim a b c = b ^ 2 - 4 * a * c   (unfold with `rw [discrim] at h`)
 BANNED: integral_mul_le_Lp_mul_Lq_of_nonneg, integral_mul_norm_le_Lp_mul_Lq, inner_mul_inner_self_le, real_inner_mul_inner_self_le, abs_real_inner_le_norm, real_inner_le_norm, norm_inner_le_norm
-NOTE: `rw [integral_add hf hg]` matches only when `hf`, `hg` are stated as `Integrable (fun ω => ...) μ`.
+
+GUIDE
+  Entries R1–R13: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace M090
 
+/- SKELETON · cauchy_schwarz
+  1. MILESTONE first (used in step 2; its shape is exactly the hypothesis of R11):    have
+       key : ∀ t : ℝ, 0 ≤ μ[fun ω => Y ω ^ 2] * (t * t) + (-2 * μ[fun ω => X ω * Y ω]) * t
+                + μ[fun ω => X ω ^ 2]
+     Proof of key:
+       a. fix `t`                                                                      R1
+       b. h0 : 0 ≤ μ[fun ω => (X ω - t * Y ω) ^ 2]                                      R2 with R3 (W1)
+       c. e : (fun ω => (X ω - t * Y ω) ^ 2) = fun ω => A ω + B ω + C ω, where
+            A = (t * t) * Y², B = (-2 * t) * (X * Y), C = X²                            R4, ring (W2)
+       d. one `have` per integrability fact, with its explicit `fun ω => …` type:
+            i1 for A, i2 for B (from hY2, hXY), i3 for A + B (from i1, i2)              R6, R6, R7
+       e. rewrite h0, all `at h0`: integrand, split (A + B) + C, split A + B,
+            pull out both constants                                                    R5 → R8 → R8 → R9 → R9
+       f. h0 and the goal are the same up to reordering products                       R10
+  2. Discriminant of key: context gains `this : discrim a b c ≤ 0`                     R11
+  3. Unfold `discrim` in `this`                                                        R12
+  4. Close: the goal is `this` divided by 4                                            R13
+-/
 -- BEGIN SPEC
 open MeasureTheory ProbabilityTheory
 
@@ -31,10 +45,16 @@ theorem cauchy_schwarz {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
 end M090
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. `(X - tY)² = t² Y² - 2t XY + X²`, so `0 ≤ E[(X - tY)²] = E[Y²] t² - 2 E[XY] t + E[X²]` for all `t`.
-H2. Prove `key : ∀ t : ℝ, 0 ≤ μ[fun ω => Y ω ^ 2] * (t * t) + (-2 * μ[fun ω => X ω * Y ω]) * t + μ[fun ω => X ω ^ 2]`
-    from `integral_nonneg fun ω => sq_nonneg (X ω - t * Y ω)`, after rewriting the integrand and
-    splitting the integral. Then apply `discrim_le_zero key`.
-H3. Inside `key`: `rw [e, integral_add i3 hX2, integral_add i1 i2, integral_const_mul, integral_const_mul] at h0; linarith`
-    where `i1 : Integrable (fun ω => (t * t) * Y ω ^ 2) μ` etc. Finish with `rw [discrim] at this; nlinarith`.
+H1. Think of `q(t) = E[(X - tY)²] = E[Y²] t² - 2 E[XY] t + E[X²]`: it is `≥ 0` for every real `t`
+    (an integral of a square, R2 + R3). Mathlib's `discrim_le_zero` (R11) turns "a quadratic that is
+    never negative" into "its discriminant `b² - 4ac` is `≤ 0`", which is the claim times 4.
+H2. Prove the milestone `key` of the SKELETON first. Start from
+    `h0 : 0 ≤ μ[fun ω => (X ω - t * Y ω) ^ 2] := integral_nonneg fun ω => sq_nonneg _`, rewrite its
+    integrand into `(t * t) * Y ω ^ 2 + (-2 * t) * (X ω * Y ω) + X ω ^ 2` (`funext ω; ring`), split the
+    integral with `integral_add` and pull the constants out with `integral_const_mul`, then `linarith`.
+    After `key`: `discrim_le_zero key`, unfold `discrim`, `nlinarith`.
+H3. With `i1 : Integrable (fun ω => (t * t) * Y ω ^ 2) μ := hY2.const_mul _`, `i2` likewise from `hXY`,
+    and `i3 : Integrable (fun ω => (t * t) * Y ω ^ 2 + (-2 * t) * (X ω * Y ω)) μ := i1.add i2`:
+    `rw [e, integral_add i3 hX2, integral_add i1 i2, integral_const_mul, integral_const_mul] at h0; linarith`.
+    Finish with `have := discrim_le_zero key; rw [discrim] at this; nlinarith`.
 -/

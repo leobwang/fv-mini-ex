@@ -1,9 +1,8 @@
 # Tactic states: what each tactic does to the goal
 
-Shared by every guide in this folder. Each row shows the proof state before and after one tactic.
-Per-exercise cheatsheets (`guide/<tier>/<topic>/<ID>_*.md`) cover only the library moves specific to
-that exercise and link here for the generic ones. This is a draft covering the tactics the M126
-pilot uses; it extends the core table in `lean-learn-0/notes/tactic_state_cheatsheet.md`.
+Shared by every Lean problem's guide. Each row shows the proof state before and after one tactic.
+Each problem folder's `cheatsheet.md` covers the moves specific to that problem and links here for
+the generic ones.
 
 Notation: `Γ ⊢ G` is context `Γ` and goal `G`. `∅` means no goal is left. `G₁ | G₂` means two
 goals, worked on in order.

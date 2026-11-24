@@ -3,14 +3,11 @@ GOAL
   physlib's classical harmonic oscillator `S` bundles a mass `S.m > 0` and a spring constant `S.k > 0`,
   and defines the angular frequency `S.ω = √(k/m)`. Show `m ω² = k`.
 
-REFERENCE
-  `S : HarmonicOscillator` is a structure: fields `S.m S.k : ℝ` and proofs `S.m_pos : 0 < S.m`, `S.k_pos`.
-  example (S : HarmonicOscillator) : S.ω = √(S.k / S.m) := rfl
-  #check ClassicalMechanics.HarmonicOscillator.ω_sq      -- S.ω ^ 2 = S.k / S.m
-  #check ClassicalMechanics.HarmonicOscillator.m_ne_zero -- S.m ≠ 0
-  example (a b : ℝ) (hb : b ≠ 0) : b * (a / b) = a := by field_simp
-  `field_simp` clears denominators using the `≠ 0` facts in context or given as `field_simp [h]`.
-NOTE: `HarmonicOscillator` here is `ClassicalMechanics.HarmonicOscillator` (opened below).
+GUIDE
+  Entries R1–R4: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Physlib.ClassicalMechanics.HarmonicOscillator.Basic
 
@@ -18,6 +15,13 @@ open ClassicalMechanics
 
 namespace E123
 
+/- SKELETON · m_mul_omega_sq
+  1. Replace `S.ω ^ 2` by the data of the oscillator, `S.k / S.m`:          R1
+     (do not unfold `ω`: that leaves a square root, guide W1)
+  2. The goal is now `S.m * (S.k / S.m) = S.k`; get the nonzero fact
+       S.m ≠ 0                                                              R2
+  3. Cancel `S.m` using that fact:                                          R3  (or R4)
+-/
 -- BEGIN SPEC
 theorem m_mul_omega_sq (S : HarmonicOscillator) : S.m * S.ω ^ 2 = S.k :=
 -- END SPEC
@@ -26,7 +30,9 @@ theorem m_mul_omega_sq (S : HarmonicOscillator) : S.m * S.ω ^ 2 = S.k :=
 end E123
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Don't fight the square root: physlib already knows what `S.ω ^ 2` is.
-H2. Rewrite `S.ω ^ 2` with `HarmonicOscillator.ω_sq`; what is left is `m * (k / m) = k`.
-H3. `rw [HarmonicOscillator.ω_sq]; field_simp [S.m_ne_zero]` (or `mul_div_cancel₀ _ S.m_ne_zero`).
+H1. Don't fight the square root: physlib already knows what `S.ω ^ 2` is (R1). After that the goal is
+    pure real-number algebra, and the only thing that makes it true is `S.m ≠ 0`.
+H2. Rewrite with `HarmonicOscillator.ω_sq`; what is left is `S.m * (S.k / S.m) = S.k`. Cancel the mass
+    with `field_simp`, giving it `S.m_ne_zero` (R2, R3), or with the lemma `mul_div_cancel₀` (R4).
+H3. `rw [HarmonicOscillator.ω_sq]`, then `field_simp [S.m_ne_zero]` (or `exact mul_div_cancel₀ _ S.m_ne_zero`).
 -/

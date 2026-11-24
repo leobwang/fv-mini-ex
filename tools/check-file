@@ -2,22 +2,45 @@
 # Check the problem a file belongs to, given its path from the repo root. The
 # VS Code build task runs this on the active file.
 #
-#   tools/check-file dafny/easy/E07_foo.dfy            ./check -v dafny E07
-#   tools/check-file dafny/solutions/easy/E07_foo.dfy  ./check -v --solutions dafny E07
+#   tools/check-file dafny/easy/E07_foo.dfy                    ./check -v dafny E07
+#   tools/check-file dafny/solutions/easy/E07_foo.dfy          ./check -v --solutions dafny E07
+#   tools/check-file lean/medium/01_x/M001_foo/problem.lean    ./check -v lean M001
+#   tools/check-file lean/medium/01_x/M001_foo/solution.lean   ./check -v --solutions lean M001
+#   tools/check-file lean/medium/01_x/M001_foo/guide.lean      tools/guide_sync.py M001
+#   (cheatsheet.md works like guide.lean)
 set -eu
 
 f=${1:?usage: tools/check-file <path from the repo root>}
+here=$(dirname "$0")
 lang=${f%%/*}
-name=${f##*/}
-id=${name%%_*}
+
+case "$lang" in
+  lean)
+    dir=${f%/*}
+    id=${dir##*/}
+    id=${id%%_*}
+    file=${f##*/} ;;
+  *)
+    name=${f##*/}
+    id=${name%%_*}
+    file="" ;;
+esac
 
 case "$lang:$id" in
-  lean:[EMH][0-9][0-9] | dafny:[EMH][0-9][0-9] | verus:[EMH][0-9][0-9]) ;;
+  lean:[EMH][0-9][0-9][0-9] | lean:[EMH][0-9][0-9]) ;;
+  dafny:[EMH][0-9][0-9] | verus:[EMH][0-9][0-9]) ;;
   *) echo "not a problem file: $f" >&2; exit 2 ;;
+esac
+
+case "$lang:$file" in
+  lean:problem.lean) exec "$here/../check" -v lean "$id" ;;
+  lean:solution.lean) exec "$here/../check" -v --solutions lean "$id" ;;
+  lean:guide.lean | lean:cheatsheet.md) exec python3 "$here/guide_sync.py" "$id" ;;
+  lean:*) echo "not a problem file: $f" >&2; exit 2 ;;
 esac
 
 case "$f" in
   */solutions/*) set -- --solutions ;;
   *) set -- ;;
 esac
-exec "$(dirname "$0")/../check" -v "$@" "$lang" "$id"
+exec "$here/../check" -v "$@" "$lang" "$id"

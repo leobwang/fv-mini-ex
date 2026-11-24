@@ -3,22 +3,22 @@ GOAL
   Reshape the context: instantiate a `∀`-hypothesis in place, replace a hypothesis by a cleaner
   one, eliminate variables with `subst`, and rewrite in two hypotheses at once.
 
-REFERENCE
-  example (f : Nat → Nat) (h : ∀ n, f n = n) : f 2 = 2 := by
-    specialize h 2; exact h          -- `h` becomes `f 2 = 2` (use `have h2 := h 2` to keep h)
-  example (n : Nat) (h : n + 0 = 3) : n = 3 := by
-    replace h : n = 3 := h; exact h  -- new statement, same name; the old `h` is gone
-  example (a b : Nat) (h1 : a = b) (h2 : b = 1) : a = 1 := by
-    subst h2 h1; rfl                 -- `subst h` (h : x = e or e = x) deletes the variable x
-  example (a b : Nat) (h : a = b) (h1 : a > 0) : b > 0 := by
-    rw [h] at h1; exact h1           -- several at once: `at h1 h2`; everywhere: `at *`
-  #check @Nat.zero_add   -- 0 + n = n          (`clear h` deletes a hypothesis)
 BANNED: simp, simpa, simp_all, omega, grind, decide, exact?, apply?, try?
-NOTE: `0 + n` is not definitionally `n` (`n + 0` is). `rw` alone could do it all; use the named tactics.
+
+GUIDE
+  Entries R1–R8: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace E050
 
+/- SKELETON · specialize_ex
+  1. Copy the instance at 3, keeping `h`:  h3 : f 3 = 2 * 3                 R1
+  2. Turn `h` itself into the instance at 4:  h : f 4 = 2 * 4               R2
+  3. Rewrite the goal with both; `rw` closes `2 * 3 + 2 * 4 = 14` itself:    R3
+-/
 -- BEGIN SPEC
 theorem specialize_ex (f : Nat → Nat) (h : ∀ n, f n = 2 * n) : f 3 + f 4 = 14 :=
 -- END SPEC
@@ -27,6 +27,11 @@ theorem specialize_ex (f : Nat → Nat) (h : ∀ n, f n = 2 * n) : f 3 + f 4 = 1
     specialize h 4
     rw [h3, h]
 
+/- SKELETON · replace_ex
+  1. Replace `h : 0 + n = 5` by `h : n = 5`, proving the new statement
+     from the old `h` by rewriting inside it:                               R4 (proof: R5, exact h)
+  2. Feed the clean `h` to `g`:                                              exact g h
+-/
 -- BEGIN SPEC
 theorem replace_ex (n : Nat) (h : 0 + n = 5) (g : n = 5 → n * 2 = 10) : n * 2 = 10 :=
 -- END SPEC
@@ -34,6 +39,10 @@ theorem replace_ex (n : Nat) (h : 0 + n = 5) (g : n = 5 → n * 2 = 10) : n * 2 
     replace h : n = 5 := by rw [Nat.zero_add] at h; exact h
     exact g h
 
+/- SKELETON · subst_ex
+  1. Eliminate `c`, then `b`, then `a` (one `subst` can take all three):   R6
+  2. The goal is now `7 + 7 = 14`: close it by computation:                 rfl
+-/
 -- BEGIN SPEC
 theorem subst_ex (a b c : Nat) (h1 : a = b) (h2 : b = c) (h3 : c = 7) : a + b = 14 :=
 -- END SPEC
@@ -41,6 +50,11 @@ theorem subst_ex (a b c : Nat) (h1 : a = b) (h2 : b = c) (h3 : c = 7) : a + b = 
     subst h3 h2 h1
     rfl
 
+/- SKELETON · rw_at_two
+  1. Rewrite `a` to `b` in both hypotheses at once:                          R7
+       h1 : b + 1 = 5      h2 : 2 * b = 8
+  2. They are exactly the two conjuncts:                                     R8
+-/
 -- BEGIN SPEC
 theorem rw_at_two (a b : Nat) (h : a = b) (h1 : a + 1 = 5) (h2 : 2 * a = 8) :
     b + 1 = 5 ∧ 2 * b = 8 :=
@@ -52,10 +66,11 @@ theorem rw_at_two (a b : Nat) (h : a = b) (h1 : a + 1 = 5) (h2 : 2 * a = 8) :
 end E050
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Watch the hypotheses above `⊢` change after each tactic; the goal itself barely moves.
-H2. `specialize_ex`: keep one copy (`have h3 := h 3`), then `specialize h 4`, then rewrite the goal.
-    `replace_ex`: turn `h` into `n = 5` with `Nat.zero_add`, then feed it to `g`.
-    `subst_ex`: eliminate `c`, then `b`, then `a`; what is left computes.
+H1. Watch the hypotheses above `⊢` change after each tactic; the goal itself barely moves. Each theorem
+    is one or two context moves (R1–R8) and a one-step finish.
+H2. `specialize_ex`: keep one copy (`have h3 := h 3`, R1), then `specialize h 4` (R2), then rewrite the
+    goal (R3). `replace_ex`: turn `h` into `n = 5` with `Nat.zero_add` (R4, R5), then feed it to `g`.
+    `subst_ex`: eliminate `c`, then `b`, then `a` (R6); what is left computes. `rw_at_two`: R7, R8.
 H3. `replace h : n = 5 := by rw [Nat.zero_add] at h; exact h`, then `exact g h`;
     `subst h3 h2 h1; rfl`; `rw [h] at h1 h2; exact ⟨h1, h2⟩`.
 -/

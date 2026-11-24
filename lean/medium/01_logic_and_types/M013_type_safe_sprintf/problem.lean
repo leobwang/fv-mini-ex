@@ -4,15 +4,11 @@ GOAL
   type of arguments is a type error. Write `sprintfAux fs acc` (`acc` is the text produced so far) and
   prove that `sprintf` agrees with the piece-by-piece spec `render` on every argument tuple.
 
-REFERENCE
-  example : Fmt.type [.lit "x=", .nat] = (Nat → String) := rfl   -- a type computed by recursion
-  -- once `sprintfAux` is written:  sprintf [.lit "x=", .nat, .lit ", s=", .str] 3 "ab" = "x=3, s=ab"
-  -- in `fun | .nat :: fs, acc => _` the arm must have type `Fmt.type (.nat :: fs)`, which
-  -- reduces to `Nat → Fmt.type fs`, so the arm itself can be `fun n => …`
-  example : toString (42 : Nat) = "42" := rfl
-  #check String.append_assoc  -- s₁ ++ s₂ ++ s₃ = s₁ ++ (s₂ ++ s₃)
-  -- `cases args` on `args : Fmt.Args []` (that type is `Unit`); `obtain ⟨n, a⟩ := args` on a pair
-NOTE: The body goes after the frozen `:=`, so write it as `fun | [], acc => … | .lit s :: fs, acc => … | …`.
+GUIDE
+  Entries R1–R15: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 
 namespace M013
@@ -53,12 +49,41 @@ def render : (fs : List Fmt) → Fmt.Args fs → String
   | .str :: fs, (s, a) => s ++ render fs a
 -- END SPEC
 
+/- SKELETON · sprintfAux
+  1. The body is a term after the frozen `:=`: a `fun` with one arm per
+     shape of the list, matching `fs` and `acc` together:                  R1
+       | [], acc => …  | .lit s :: fs, acc => …  | .nat :: fs, acc => …  | .str :: fs, acc => …
+  2. Each arm's type is `Fmt.type` of its list; reduce it to see what the
+     arm must produce (`String`, `Fmt.type fs`, `Nat → Fmt.type fs`, …):   R2
+  3. `[]`: nothing is left to fill in; return the accumulator:             R3
+  4. `.lit s`: call `sprintfAux` on the tail `fs`, with `s` appended:      R3, R5
+  5. `.nat` / `.str`: take the argument, then the recursive call with it
+     appended (`toString` for the `Nat`):                                  R4 → R5
+  6. Test it by `rfl` on a concrete format, in an `example` placed after
+     `sprintf` (below the theorem, before `end M013`), e.g.
+     `example : sprintf [.lit "x=", .nat] 3 = "x=3" := rfl`:               W1
+-/
 -- BEGIN SPEC
 /-- Write this: `acc` is the text produced so far; holes become function arguments. -/
 def sprintfAux : (fs : List Fmt) → String → Fmt.type fs :=
 -- END SPEC
   sorry
 
+/- SKELETON · sprintf_correct
+  1. MILESTONE first, as a `have` (with `acc = ""` the statement is not
+     inductive); step 5 uses it:                                           R6
+       key : ∀ (fs : List Fmt) (acc : String) (args : Fmt.Args fs),
+               Fmt.apply fs (sprintfAux fs acc) args = acc ++ render fs args
+  2. Proof of `key`: introduce only `fs` and induct on it, so `ih` keeps
+     `∀ acc args`; in each case `intro acc args`:                          R7
+  3. `nil`: split `args : Fmt.Args []` into `()`, unfold the definitions;
+     `simp` closes `acc = acc ++ ""` by itself:                            R8 → R11, R14
+  4. `cons f fs ih`: split the head directive:                             R9
+       `lit s`:       unfold, use `ih` at `acc ++ s`, regroup `++`:        R11 → R12 → R13
+       `nat`, `str`:  split `args` into the argument and the rest first:   R10 → R11 → R12 → R13 (R15)
+  5. The theorem: unfold `sprintf`, rewrite with `key` at `acc = ""`,
+     then `"" ++ s = s`:                                                   R11, R12, R14
+-/
 -- BEGIN SPEC
 def sprintf (fs : List Fmt) : Fmt.type fs := sprintfAux fs ""
 
@@ -70,11 +95,13 @@ theorem sprintf_correct (fs : List Fmt) (args : Fmt.Args fs) :
 end M013
 
 /- ─────────────────────────── HINTS (spoilers below) ───────────────────────────
-H1. Define `sprintfAux` by matching on `fs` (with `acc` as a second pattern): `[]` returns `acc`, a literal
-    appends to `acc`, a hole returns a function that appends its argument.
-H2. `sprintf_correct` is not inductive as stated (`acc = ""` does not survive one step). Prove the general
-    `∀ fs acc args, Fmt.apply fs (sprintfAux fs acc) args = acc ++ render fs args` first.
-H3. The hole arm: `| .nat :: fs, acc => fun n => sprintfAux fs (acc ++ toString n)`. For the helper:
-    `intro fs; induction fs with …`, then `cases f` on the head directive; each case is
-    `simp [sprintfAux, Fmt.apply, render, ih, String.append_assoc]` (after `obtain ⟨n, a⟩ := args` for holes).
+H1. `sprintfAux`: a `fun` matching `fs` and `acc` together (R1). `[]` returns `acc`, a literal appends to
+    `acc`, a hole returns a function that appends its argument (R4, R5). `sprintf_correct` is not
+    inductive as stated: the accumulator `""` does not survive one step (R6).
+H2. Prove the milestone `key : ∀ fs acc args, Fmt.apply fs (sprintfAux fs acc) args = acc ++ render fs args`
+    by `intro fs; induction fs` (so `ih` stays `∀ acc args`), split `args` and the head directive, and
+    `simp` with the three definitions (R7–R13). The theorem is then `simp [sprintf, key]`.
+H3. The hole arm: `| .nat :: fs, acc => fun n => sprintfAux fs (acc ++ toString n)`. In `key`, after
+    `intro acc args` and `cases f`, each `cons` case is `simp [sprintfAux, Fmt.apply, render, ih, String.append_assoc]`
+    (after `obtain ⟨n, a⟩ := args` for holes; `cases args` in `nil`).
 -/

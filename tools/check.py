@@ -13,6 +13,9 @@ Author use:
   ./check --solutions [lang]    solutions: spec identical to stub, passes at the strict limit
   ./check --index               regenerate <lang>/INDEX.md from the problem headers
 
+Lean problems are folders: lean/<tier>/[<topic>/]<ID>_<name>/{problem,solution,guide}.lean
+plus cheatsheet.md. ./check reads problem.lean; --solutions reads solution.lean.
+
 A problem PASSES when the verifier accepts the file, nothing forbidden appears
 in the code, and every BEGIN SPEC ... END SPEC region is byte-identical
 (modulo trailing whitespace) to the frozen stub.
@@ -214,14 +217,29 @@ class Problem:
         return str(self.path.relative_to(ROOT))
 
 
+LEAN_PROBLEM_FILE = {False: "problem.lean", True: "solution.lean"}
+
+
 def problems(lang: Lang, solutions: bool) -> list[Problem]:
-    base = ROOT / lang.name / ("solutions" if solutions else "")
+    """Lean: one folder per problem, lean/<tier>/[<topic>/]<ID>_<name>/ holding problem.lean,
+    solution.lean, guide.lean and cheatsheet.md. Dafny/Verus: <lang>/[solutions/]<tier>/<ID>_<name>.<ext>."""
     out = []
-    for tier in TIERS:
-        d = base / tier
+    if lang.name == "lean":
+        fname = LEAN_PROBLEM_FILE[solutions]
+        for tier in TIERS:
+            d = ROOT / "lean" / tier
+            if not d.is_dir():
+                continue
+            # Problem folders sit directly in the tier folder or one level down in a topic folder.
+            for p in sorted(d.glob(f"*/{fname}")) + sorted(d.glob(f"*/*/{fname}")):
+                m = re.match(r"([EMH]\d{2,3})_", p.parent.name)
+                if m:
+                    topic = p.parent.parent.name if p.parent.parent != d else ""
+                    out.append(Problem(lang, m[1], tier, p, topic))
+    for tier in TIERS if lang.name != "lean" else ():
+        d = ROOT / lang.name / ("solutions" if solutions else "") / tier
         if not d.is_dir():
             continue
-        # Problems may sit directly in the tier folder or one level down in a topic folder.
         for p in sorted(d.glob(f"*{lang.ext}")) + sorted(d.glob(f"*/*{lang.ext}")):
             m = re.match(r"([EMH]\d{2,3})_", p.name)
             if m:

@@ -2,21 +2,27 @@
 GOAL
   For coprime integers `m, n`, find `x` with `x ≡ a (mod m)` and `x ≡ b (mod n)`, and show any two
   solutions agree mod `m * n`. Over ℤ, `IsCoprime m n` means Bézout: `∃ u v, u * m + v * n = 1`.
-
-REFERENCE
-  #check Int.modEq_iff_dvd   -- a ≡ b [ZMOD n] ↔ n ∣ b - a      (`[ZMOD n]` is `Int.ModEq n`)
-  example (m n : ℤ) (h : IsCoprime m n) : ∃ u v, u * m + v * n = 1 := h   -- unfolds by definition
-  example (a b c : ℤ) (h : a = b * c) : b ∣ a := ⟨c, h⟩   -- `b ∣ a` is `∃ c, a = b * c`
-  example (x u v m n : ℤ) (huv : u * m + v * n = 1) : x * u * m + x * v * n = x := by
-    linear_combination x * huv   -- goal = (coefficients) * hypotheses, checked by `ring`
-  -- `obtain ⟨u, v, huv⟩ := h` unpacks Bézout; `obtain ⟨s, hs⟩ := hdvd` unpacks `m ∣ _`.
 BANNED: Int.modEq_and_modEq_iff_modEq_mul, Nat.modEq_and_modEq_iff_modEq_mul, Nat.chineseRemainder, Nat.chineseRemainder', ZMod.chineseRemainder, IsCoprime.mul_dvd, Nat.Coprime.mul_dvd_of_dvd_of_dvd, exact?, apply?, rw?, hint, try?
-NOTE: search tactics (`exact?`, `try?`, ...) are fine for exploring, but they close goals with banned lemmas, so they cannot stay.
+
+GUIDE
+  Entries R1–R7: one per tactic or lemma, with the proof state before and after.
+    cheatsheet.md   read
+    guide.lean      step through in the infoview
+  Each theorem below has a SKELETON: the order in which those entries are used.
 -/
 import Mathlib
 
 namespace M061
 
+/- SKELETON · crt_exists
+  1. Unpack Bézout: context gains `u v` and `huv : u * m + v * n = 1`:        R1
+  2. Choose x₀ = a·(v·n) + b·(u·m) (since v·n ≡ 1 mod m, u·m ≡ 1 mod n) and
+     split into the two congruences:                                       R2
+  3. On both goals (`<;>`): congruence → divisibility; the goals become
+     `m ∣ a - x₀` and `n ∣ b - x₀` (right side minus left side):            R3
+  4. In each goal: give the quotient (a multiple of `u` for `m`, of `v` for
+     `n`), then close the equation with one multiple of `huv`:              R4 → R5
+-/
 -- BEGIN SPEC
 theorem crt_exists (m n : ℤ) (h : IsCoprime m n) (a b : ℤ) :
     ∃ x, x ≡ a [ZMOD m] ∧ x ≡ b [ZMOD n] :=
@@ -27,6 +33,14 @@ theorem crt_exists (m n : ℤ) (h : IsCoprime m n) (a b : ℤ) :
     · exact ⟨a * u - b * u, by linear_combination (-a) * huv⟩
     · exact ⟨b * v - a * v, by linear_combination (-b) * huv⟩
 
+/- SKELETON · crt_unique
+  1. Unpack Bézout:                                                         R1
+  2. All three congruences → divisibilities of `y - x` at once:             R6
+  3. Unpack `hm`, `hn`: `hs : y - x = m * s`, `ht : y - x = n * t`:         R7, R7
+  4. Witness for `m * n ∣ y - x`: write y - x = u·m·(y - x) + v·n·(y - x),
+     replace `y - x` by `n * t` in the first term, by `m * s` in the second: R4
+  5. Close the equation from `huv`, `hs`, `ht` (three coefficients):        R5
+-/
 -- BEGIN SPEC
 theorem crt_unique (m n : ℤ) (h : IsCoprime m n) (x y : ℤ)
     (hm : x ≡ y [ZMOD m]) (hn : x ≡ y [ZMOD n]) : x ≡ y [ZMOD m * n] :=
@@ -47,6 +61,7 @@ H1. `v * n ≡ 1 (mod m)` and `u * m ≡ 1 (mod n)`, so `x = a * (v * n) + b * (
 H2. Existence: `m ∣ a - x` with witness `a * u - b * u`, and symmetrically for `n`. Uniqueness: from
     `y - x = m * s` and `y - x = n * t`, multiply `u * m + v * n = 1` by `y - x`.
 H3. `refine ⟨a * v * n + b * u * m, ?_, ?_⟩ <;> rw [Int.modEq_iff_dvd]`, then
-    `exact ⟨a * u - b * u, by linear_combination c * huv⟩` for the right coefficient `c`.
-    Uniqueness: witness `u * t + v * s`, closed by `linear_combination` from `huv`, `hs`, `ht`.
+    `exact ⟨a * u - b * u, by linear_combination c * huv⟩` for the right coefficient `c` (a multiple of `a`).
+    Uniqueness: witness `u * t + v * s`, closed by `linear_combination e * huv + u * m * ht + v * n * hs`
+    for the right `e` (a multiple of `y - x`).
 -/
